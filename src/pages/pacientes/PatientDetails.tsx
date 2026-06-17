@@ -15,6 +15,8 @@ import {
   Plus,
   ChevronRight,
   Wand2,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -58,6 +60,13 @@ import { FinanceiroFormDialog } from '@/components/FinanceiroFormDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
+import { DocumentoFormDialog } from '@/components/DocumentoFormDialog'
+import {
+  getDocumentosByPatient,
+  Documento,
+  deleteDocumento,
+  createDocumento,
+} from '@/services/documentos'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -68,6 +77,7 @@ export default function PatientDetails() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [evolucoes, setEvolucoes] = useState<Evolucao[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [documentos, setDocumentos] = useState<Documento[]>([])
 
   const [isEditing, setIsEditing] = useState(false)
   const [finFormOpen, setFinFormOpen] = useState(false)
@@ -77,6 +87,9 @@ export default function PatientDetails() {
   const [evoFormOpen, setEvoFormOpen] = useState(false)
   const [editingEvo, setEditingEvo] = useState<Evolucao | null>(null)
   const [viewingEvo, setViewingEvo] = useState<Evolucao | null>(null)
+
+  const [docFormOpen, setDocFormOpen] = useState(false)
+  const [editingDoc, setEditingDoc] = useState<Documento | null>(null)
 
   const loadData = async () => {
     if (!id) return
@@ -90,6 +103,7 @@ export default function PatientDetails() {
       )
       setEvolucoes(await getEvolucoes(id))
       setTransactions(await getTransactionsByPatient(id))
+      setDocumentos(await getDocumentosByPatient(id))
     } catch (e) {
       toast({ title: 'Erro', description: 'Paciente não encontrado.', variant: 'destructive' })
     } finally {
@@ -110,6 +124,10 @@ export default function PatientDetails() {
   })
 
   useRealtime('financeiro', (e) => {
+    if (e.record.patient_id === id) loadData()
+  })
+
+  useRealtime('documentos', (e) => {
     if (e.record.patient_id === id) loadData()
   })
 
@@ -178,6 +196,42 @@ export default function PatientDetails() {
       toast({
         title: 'Erro',
         description: 'Não foi possível remover a evolução.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este documento?')) return
+    try {
+      await deleteDocumento(docId)
+      toast({ title: 'Excluído', description: 'Documento removido com sucesso.' })
+      loadData()
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover o documento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleGenerateLgpd = async () => {
+    try {
+      await createDocumento({
+        user_id: pb.authStore.record?.id,
+        patient_id: patient.id,
+        file_name: `Termo de Consentimento LGPD - ${patient.name}`,
+        doc_type: 'termo_consentimento_lgpd',
+        description: `Identificação do Paciente: ${patient.name}\nFinalidade: Tratamento de dados para fins clínicos e terapêuticos.\nDireitos do Titular: Acesso, correção e exclusão de dados.\nPrazo de Armazenamento: Conforme legislação vigente/CFP.\nContato: ${pb.authStore.record?.email || ''}`,
+        status: 'pendente_assinatura',
+      })
+      toast({ title: 'Sucesso', description: 'Termo LGPD gerado com sucesso.' })
+      loadData()
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar o termo.',
         variant: 'destructive',
       })
     }
@@ -571,17 +625,109 @@ export default function PatientDetails() {
           <AnamneseTab patientId={patient.id} />
         </TabsContent>
 
-        <TabsContent value="documentos" className="mt-6">
+        <TabsContent value="documentos" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Documentos Clínicos</h3>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleGenerateLgpd}
+                className="border-teal-600 text-teal-700 hover:bg-teal-50"
+              >
+                <ShieldAlert className="h-4 w-4 mr-2" /> Gerar Termo LGPD
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingDoc(null)
+                  setDocFormOpen(true)
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Novo Documento
+              </Button>
+            </div>
+          </div>
+
           <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="capitalize">Documentos</CardTitle>
-              <CardDescription>Gestão de documentos do paciente.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-32 flex items-center justify-center border-t border-dashed bg-muted/20">
-              <p className="text-muted-foreground text-sm">
-                Área em desenvolvimento para documentos.
-              </p>
-            </CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Arquivo</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documentos.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      {doc.file_name}
+                      {doc.status === 'privado' && (
+                        <Lock className="h-3 w-3 text-muted-foreground ml-1" />
+                      )}
+                    </TableCell>
+                    <TableCell className="capitalize">{doc.doc_type.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{new Date(doc.created).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          doc.status === 'visivel_paciente'
+                            ? 'default'
+                            : doc.status === 'pendente_assinatura'
+                              ? 'outline'
+                              : 'secondary'
+                        }
+                        className={
+                          doc.status === 'visivel_paciente'
+                            ? 'bg-teal-600'
+                            : doc.status === 'pendente_assinatura'
+                              ? 'text-amber-600 border-amber-600'
+                              : ''
+                        }
+                      >
+                        {doc.status.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingDoc(doc)
+                            setDocFormOpen(true)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteDoc(doc.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {documentos.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhum documento registrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            <div className="p-4 bg-muted/10 border-t flex items-center gap-2 text-xs text-muted-foreground">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              Documentos sensíveis devem ser armazenados com criptografia e acesso restrito.
+              Conformidade LGPD.
+            </div>
           </Card>
         </TabsContent>
 
@@ -779,6 +925,14 @@ export default function PatientDetails() {
         onOpenChange={setFinFormOpen}
         transaction={editingTransaction}
         defaultPatientId={patient.id}
+      />
+
+      <DocumentoFormDialog
+        open={docFormOpen}
+        onOpenChange={setDocFormOpen}
+        documento={editingDoc}
+        patientId={patient.id}
+        onSaved={loadData}
       />
     </div>
   )
