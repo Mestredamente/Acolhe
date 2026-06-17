@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { LogOut, Home, BookHeart, CheckSquare, FileText, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NotificationsPopover } from '@/components/NotificationsPopover'
 
 export function PortalLayout() {
   const { signOut } = useAuth()
@@ -48,6 +49,7 @@ export function PortalLayout() {
                 )
               })}
             </nav>
+            <NotificationsPopover isPortal />
             <Button
               variant="ghost"
               className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full"

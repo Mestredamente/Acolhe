@@ -17,11 +17,12 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getPatients, Patient } from '@/services/patients'
 import { getAppointments, Appointment } from '@/services/appointments'
 import { getAllPendingRespostas, RespostaEscala } from '@/services/escalas'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, AlertCircle, DollarSign, FileSignature } from 'lucide-react'
 import { PatientFormDialog } from '@/components/PatientFormDialog'
 import { AppointmentFormDialog } from '@/components/AppointmentFormDialog'
 import pb from '@/lib/pocketbase/client'
 import { cn } from '@/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const statusColors: Record<string, string> = {
   agendada: 'text-gray-500 bg-gray-100 border-gray-200',
@@ -41,6 +42,12 @@ export default function Index() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [pendingEscalas, setPendingEscalas] = useState<RespostaEscala[]>([])
+  const [alerts, setAlerts] = useState({
+    unconfirmedApts: 0,
+    overduePayments: 0,
+    pendingSignatures: 0,
+    pendingScales: 0,
+  })
 
   const loadData = async () => {
     try {
@@ -52,6 +59,23 @@ export default function Index() {
       setPatients(pts)
       setAppointments(apts)
       setPendingEscalas(escalas)
+
+      const todayStr = new Date().toISOString().split('T')[0]
+      const [unconf, overdue, sigs, pScales] = await Promise.all([
+        pb
+          .collection('appointments')
+          .getList(1, 1, { filter: `appointment_date = "${todayStr}" && status = "agendada"` }),
+        pb.collection('financeiro').getList(1, 1, { filter: `status = "atrasado"` }),
+        pb.collection('documentos').getList(1, 1, { filter: `status = "pendente_assinatura"` }),
+        pb.collection('respostas_escala').getList(1, 1, { filter: `status = "pendente"` }),
+      ])
+
+      setAlerts({
+        unconfirmedApts: unconf.totalItems,
+        overduePayments: overdue.totalItems,
+        pendingSignatures: sigs.totalItems,
+        pendingScales: pScales.totalItems,
+      })
     } catch (e) {
       console.error(e)
     }
@@ -63,6 +87,8 @@ export default function Index() {
   useRealtime('patients', loadData)
   useRealtime('appointments', loadData)
   useRealtime('respostas_escala', loadData)
+  useRealtime('financeiro', loadData)
+  useRealtime('documentos', loadData)
 
   const activePatients = useMemo(
     () => patients.filter((p) => p.status === 'active').length,
@@ -104,6 +130,72 @@ export default function Index() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-primary">Dashboard</h1>
         <p className="text-muted-foreground">Resumo do seu dia e da clínica.</p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {alerts.unconfirmedApts > 0 && (
+          <Alert
+            variant="destructive"
+            className="bg-destructive/10 text-destructive border-destructive/20"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Consultas não confirmadas hoje</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              Você tem {alerts.unconfirmedApts}{' '}
+              {alerts.unconfirmedApts === 1 ? 'consulta' : 'consultas'} para hoje aguardando
+              confirmação.
+              <Button variant="link" className="text-destructive h-auto p-0 font-semibold" asChild>
+                <Link to="/agenda">Ver Agenda</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {alerts.overduePayments > 0 && (
+          <Alert className="bg-orange-500/10 text-orange-700 border-orange-500/20">
+            <DollarSign className="h-4 w-4" />
+            <AlertTitle>Pagamentos em atraso</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              Há {alerts.overduePayments}{' '}
+              {alerts.overduePayments === 1
+                ? 'registro financeiro atrasado'
+                : 'registros financeiros atrasados'}
+              .
+              <Button variant="link" className="text-orange-700 h-auto p-0 font-semibold" asChild>
+                <Link to="/financeiro">Ver Financeiro</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {alerts.pendingSignatures > 0 && (
+          <Alert className="bg-blue-500/10 text-blue-700 border-blue-500/20">
+            <FileSignature className="h-4 w-4" />
+            <AlertTitle>Assinaturas Pendentes</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              Você tem {alerts.pendingSignatures}{' '}
+              {alerts.pendingSignatures === 1 ? 'documento aguardando' : 'documentos aguardando'}{' '}
+              assinatura.
+              <Button variant="link" className="text-blue-700 h-auto p-0 font-semibold" asChild>
+                <Link to="/pacientes">Ver Documentos</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {alerts.pendingScales > 0 && (
+          <Alert className="bg-amber-500/10 text-amber-700 border-amber-500/20">
+            <FileSignature className="h-4 w-4" />
+            <AlertTitle>Escalas Pendentes</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              Há {alerts.pendingScales}{' '}
+              {alerts.pendingScales === 1
+                ? 'escala aguardando resposta'
+                : 'escalas aguardando respostas'}{' '}
+              dos pacientes.
+              <Button variant="link" className="text-amber-700 h-auto p-0 font-semibold" asChild>
+                <Link to="/pacientes">Acompanhar</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

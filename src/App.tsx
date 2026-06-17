@@ -26,6 +26,7 @@ import { PortalMensagens } from './pages/portal/Mensagens'
 import MensagensList from './pages/mensagens/Index'
 import { PortalLayout } from './components/portal/PortalLayout'
 import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
+import NotificacoesList from './pages/notificacoes/Index'
 
 const App = () => (
   <AuthProvider>
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/portal/diario" element={<PortalDiario />} />
               <Route path="/portal/tarefas" element={<PortalTarefas />} />
               <Route path="/portal/documentos" element={<PortalDocumentos />} />
+              <Route path="/portal/notificacoes" element={<NotificacoesList isPortal />} />
             </Route>
           </Route>
 
@@ -61,6 +63,7 @@ const App = () => (
               <Route path="/relatorios" element={<RelatoriosList />} />
               <Route path="/automacoes" element={<AutomacoesList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/notificacoes" element={<NotificacoesList />} />
             </Route>
           </Route>
 
