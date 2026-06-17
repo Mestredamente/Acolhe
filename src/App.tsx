@@ -10,6 +10,7 @@ import PacientesList from './pages/pacientes/Index'
 import Agenda from './pages/agenda/Index'
 import Financeiro from './pages/financeiro/Index'
 import Configuracoes from './pages/configuracoes/Index'
+import RelatoriosList from './pages/relatorios/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/prontuarios" element={<Navigate to="/" replace />} />
               <Route path="/financeiro" element={<Financeiro />} />
+              <Route path="/relatorios" element={<RelatoriosList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
           </Route>

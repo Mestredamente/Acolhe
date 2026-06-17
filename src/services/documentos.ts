@@ -28,6 +28,12 @@ export const getPortalDocumentos = () => {
   })
 }
 
+export const getAllDocumentos = () => {
+  return pb.collection<Documento>('documentos').getFullList({
+    sort: '-created',
+  })
+}
+
 export const createDocumento = (data: Partial<Documento> | FormData) => {
   return pb.collection<Documento>('documentos').create(data)
 }

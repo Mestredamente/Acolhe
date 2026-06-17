@@ -84,3 +84,9 @@ export const getAllPendingRespostas = () => {
     expand: 'patient_id,scale_id',
   })
 }
+
+export const getAllRespostas = () => {
+  return pb.collection<RespostaEscala>('respostas_escala').getFullList({
+    sort: '-created',
+  })
+}

@@ -26,6 +26,11 @@ export const getEvolucoes = (patientId: string) =>
     expand: 'appointment_id',
   })
 
+export const getAllEvolucoes = () =>
+  pb.collection<Evolucao>('evolucoes').getFullList({
+    sort: '-session_date',
+  })
+
 export const createEvolucao = (data: Partial<Evolucao>) =>
   pb.collection<Evolucao>('evolucoes').create({ ...data, user_id: pb.authStore.record?.id })
 
