@@ -55,6 +55,7 @@ import { PatientForm } from '@/components/PatientForm'
 import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
+import { AnamneseTab } from '@/components/AnamneseTab'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -556,7 +557,11 @@ export default function PatientDetails() {
           </div>
         </TabsContent>
 
-        {['anamnese', 'documentos', 'financeiro'].map((tab) => (
+        <TabsContent value="anamnese" className="mt-6">
+          <AnamneseTab patientId={patient.id} />
+        </TabsContent>
+
+        {['documentos', 'financeiro'].map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-6">
             <Card className="shadow-sm">
               <CardHeader>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T04:10:04.769Z",
+  "generatedAt": "2026-06-17T04:15:13.869Z",
   "collections": [
     {
       "name": "users",
@@ -345,6 +345,187 @@
       "indexes": [
         "CREATE INDEX idx_evolucoes_patient_date ON evolucoes (patient_id, session_date DESC)"
       ]
+    },
+    {
+      "name": "anamneses",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "approach",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Psicanálise", "TCC", "Humanista", "Gestalt", "Comportamental", "Geral"]
+        },
+        {
+          "name": "completion_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "complaint",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "family_history",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medical_history",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medications",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "substance_use",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hospitalizations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suicidal_ideation_past",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suicide_attempts",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "family_psych_history",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consultation_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "treatment_expectations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "general_observations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tcc_automatic_thoughts",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tcc_core_beliefs",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tcc_comorbidities",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "psycho_family_dynamics",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "psycho_dream_reports",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "psycho_dev_history",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "humanist_self_concept",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "humanist_personal_resources",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "humanist_support_network",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_anamneses_patient ON anamneses (patient_id)"]
     }
   ]
 }
