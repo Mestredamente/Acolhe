@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookHeart, CheckSquare, FileText, CalendarDays } from 'lucide-react'
+import {
+  BookHeart,
+  CheckSquare,
+  FileText,
+  CalendarDays,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import type { Appointment } from '@/services/appointments'
@@ -9,28 +16,129 @@ import { ptBR } from 'date-fns/locale'
 import { usePatientContext } from '@/components/portal/PortalProtectedRoute'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 
 export function PortalDashboard() {
   const { patient } = usePatientContext()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [psicoConfig, setPsicoConfig] = useState<ConfigClinica | null>(null)
+  const { toast } = useToast()
 
-  useEffect(() => {
+  const loadData = () => {
     pb.collection<Appointment>('appointments')
-      .getList(1, 5, {
-        filter: `patient_id="${patient.id}" && time >= @now`,
-        sort: 'time',
+      .getFullList({
+        filter: `patient_id="${patient.id}" && appointment_date >= "${new Date().toISOString().substring(0, 10)} 00:00:00.000Z"`,
+        sort: 'appointment_date,start_time',
       })
-      .then((res) => setAppointments(res.items))
+      .then((items) => {
+        const now = new Date()
+        const filtered = items.filter((a) => {
+          const dtStr = a.appointment_date.substring(0, 10)
+          const aptDate = new Date(`${dtStr}T${a.start_time || '00:00'}:00-03:00`)
+          return (
+            aptDate > now ||
+            a.appointment_date.substring(0, 10) >= now.toISOString().substring(0, 10)
+          )
+        })
+        setAppointments(filtered)
+      })
       .catch(console.error)
 
     if (patient.user_id) {
       getConfig(patient.user_id).then(setPsicoConfig).catch(console.error)
     }
+  }
+
+  useEffect(() => {
+    loadData()
   }, [patient.id, patient.user_id])
+
+  const handleConfirm = async (id: string) => {
+    try {
+      await pb.collection('appointments').update(id, { status: 'confirmada' })
+      toast({ title: 'Presença confirmada!' })
+      loadData()
+    } catch (e) {
+      toast({ title: 'Erro ao confirmar', variant: 'destructive' })
+    }
+  }
+
+  const upcomingToConfirm = appointments.find((a) => {
+    if (a.status !== 'agendada') return false
+    const now = new Date()
+    const dtStr = a.appointment_date.substring(0, 10)
+    const [h, m] = (a.start_time || '00:00').split(':').map(Number)
+    const aptDate = new Date(
+      `${dtStr}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00-03:00`,
+    )
+
+    const diffHours = (aptDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+    return diffHours > 0 && diffHours <= 48
+  })
+
+  const diffHoursUpcoming = upcomingToConfirm
+    ? (() => {
+        const dtStr = upcomingToConfirm.appointment_date.substring(0, 10)
+        const [h, m] = (upcomingToConfirm.start_time || '00:00').split(':').map(Number)
+        const aptDate = new Date(
+          `${dtStr}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00-03:00`,
+        )
+        return (aptDate.getTime() - new Date().getTime()) / (1000 * 60 * 60)
+      })()
+    : 999
 
   return (
     <div className="space-y-8 animate-fade-in-up">
+      {upcomingToConfirm && (
+        <Card
+          className={`border ${diffHoursUpcoming <= 24 ? 'border-orange-300 bg-orange-50' : 'border-sky-300 bg-sky-50'} shadow-sm`}
+        >
+          <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 justify-between">
+            <div className="flex items-start gap-4">
+              <div
+                className={`mt-1 rounded-full p-2 ${diffHoursUpcoming <= 24 ? 'bg-orange-100' : 'bg-sky-100'}`}
+              >
+                <AlertTriangle
+                  className={`w-6 h-6 ${diffHoursUpcoming <= 24 ? 'text-orange-600' : 'text-sky-600'}`}
+                />
+              </div>
+              <div>
+                <h3
+                  className={`font-bold ${diffHoursUpcoming <= 24 ? 'text-orange-900' : 'text-sky-900'}`}
+                >
+                  {diffHoursUpcoming <= 24
+                    ? 'Lembrete: Sessão em breve!'
+                    : 'Confirme sua próxima sessão'}
+                </h3>
+                <p
+                  className={`text-sm mt-1 ${diffHoursUpcoming <= 24 ? 'text-orange-800' : 'text-sky-800'}`}
+                >
+                  Você tem uma consulta com{' '}
+                  <strong>{psicoConfig?.nome_profissional || 'seu psicólogo(a)'}</strong> em{' '}
+                  <strong>
+                    {format(
+                      new Date(upcomingToConfirm.appointment_date.substring(0, 10) + 'T12:00:00Z'),
+                      "dd/MM 'às'",
+                      { locale: ptBR },
+                    )}{' '}
+                    {upcomingToConfirm.start_time}
+                  </strong>
+                  . Por favor, confirme sua presença.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => handleConfirm(upcomingToConfirm.id)}
+              className={`${diffHoursUpcoming <= 24 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-sky-600 hover:bg-sky-700'} text-white whitespace-nowrap shrink-0`}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Confirmar Presença
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="bg-emerald-100/80 rounded-3xl p-8 shadow-sm border border-emerald-200 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden relative">
         <div className="relative z-10">
           <h2 className="text-3xl sm:text-4xl font-bold text-emerald-900 tracking-tight">
@@ -178,7 +286,15 @@ export function PortalDashboard() {
                       {apt.type}
                     </p>
                   </div>
-                  <div className="bg-white px-4 py-1.5 rounded-full text-sm font-medium text-emerald-700 shadow-sm border border-emerald-200">
+                  <div
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium shadow-sm border capitalize ${
+                      apt.status === 'confirmada'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : apt.status === 'concluida'
+                          ? 'bg-[#e0fbfc] text-[#0f4c5c] border-[#98c1d9]'
+                          : 'bg-white text-slate-700 border-slate-200'
+                    }`}
+                  >
                     {apt.status || 'Agendada'}
                   </div>
                 </div>

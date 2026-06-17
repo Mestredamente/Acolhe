@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   Copy,
@@ -88,6 +88,7 @@ import { cn } from '@/lib/utils'
 export default function PatientDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
 
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -120,6 +121,22 @@ export default function PatientDetails() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [inviteLink, setInviteLink] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
+  const [activeTab, setActiveTab] = useState('cadastrais')
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    const tabParam = searchParams.get('tab')
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+  }, [location])
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val)
+    const searchParams = new URLSearchParams(location.search)
+    searchParams.set('tab', val)
+    navigate({ search: searchParams.toString() }, { replace: true })
+  }
 
   const handleOpenInvite = () => {
     const token =
@@ -420,7 +437,7 @@ export default function PatientDetails() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="cadastrais" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full justify-start h-auto flex-wrap bg-background border-b rounded-none px-0 gap-6">
           <TabsTrigger
             value="cadastrais"

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, BadgeCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils'
 
 const statusColors: Record<string, string> = {
   agendada: 'bg-gray-100 border-gray-300 text-gray-700',
-  confirmada: 'bg-green-100 border-green-300 text-green-800',
+  confirmada: 'bg-emerald-700 border-emerald-800 text-white shadow-sm',
   cancelada: 'bg-red-100 border-red-300 text-red-800',
-  concluida: 'bg-blue-100 border-blue-300 text-blue-800',
+  concluida: 'bg-[#0f4c5c] border-[#0a3540] text-white shadow-sm',
 }
 
 export default function Agenda() {
@@ -64,6 +64,20 @@ export default function Agenda() {
           <p className="text-muted-foreground">
             {weekDays[0].toLocaleDateString('pt-BR')} a {weekDays[6].toLocaleDateString('pt-BR')}
           </p>
+          <div className="flex flex-wrap items-center gap-4 text-xs mt-2 font-medium">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded border border-gray-300 bg-gray-100"></div> Agendada
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-emerald-700"></div> Confirmada
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-[#0f4c5c]"></div> Concluída
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded border border-red-300 bg-red-100"></div> Cancelada
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={today}>
@@ -196,10 +210,18 @@ export default function Agenda() {
                                   <div className="text-[10px] font-semibold truncate leading-tight opacity-80">
                                     {apt.start_time} - {apt.end_time}
                                   </div>
-                                  <div className="text-xs font-bold truncate leading-tight mt-0.5">
-                                    {apt.patient_name_text ||
-                                      apt.expand?.patient_id?.name ||
-                                      'Desconhecido'}
+                                  <div className="text-xs font-bold truncate leading-tight mt-0.5 flex items-center">
+                                    {apt.status === 'confirmada' && (
+                                      <BadgeCheck className="w-3.5 h-3.5 text-emerald-200 shrink-0 mr-1" />
+                                    )}
+                                    {apt.status === 'agendada' && (
+                                      <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0 mr-1.5 shadow-sm" />
+                                    )}
+                                    <span className="truncate">
+                                      {apt.patient_name_text ||
+                                        apt.expand?.patient_id?.name ||
+                                        'Desconhecido'}
+                                    </span>
                                   </div>
                                   <div className="text-[10px] opacity-70 truncate mt-auto">
                                     {apt.type}

@@ -30,6 +30,8 @@ import { Patient, getPatients } from '@/services/patients'
 import { Appointment, createAppointment, updateAppointment } from '@/services/appointments'
 import { toast } from '@/components/ui/use-toast'
 import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AlertCircle, CheckSquare } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import pb from '@/lib/pocketbase/client'
 
@@ -57,6 +59,7 @@ export function AppointmentFormDialog({
   defaultDate?: string
   defaultStartTime?: string
 }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [patients, setPatients] = useState<Patient[]>([])
   const [config, setConfig] = useState<ConfigClinica | null>(null)
@@ -206,6 +209,18 @@ export function AppointmentFormDialog({
     }
   }
 
+  const handleCompleteSession = async () => {
+    if (!appointment) return
+    try {
+      await updateAppointment(appointment.id, { status: 'concluida' })
+      toast({ title: 'Sessão concluída com sucesso!' })
+      handleOpenChange(false)
+      navigate(`/pacientes/${appointment.patient_id}?tab=prontuario`)
+    } catch (e) {
+      toast({ title: 'Erro ao concluir sessão', variant: 'destructive' })
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -215,6 +230,16 @@ export function AppointmentFormDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {isEditing &&
+              (appointment?.status === 'agendada' || appointment?.status === 'confirmada') && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 rounded-md mb-4 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <p>
+                    Fatura gerada automaticamente ao concluir a sessão. Revise antes de enviar ao
+                    paciente.
+                  </p>
+                </div>
+              )}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -350,13 +375,31 @@ export function AppointmentFormDialog({
                 )}
               />
             </div>
-            <div className="flex justify-end gap-2 pt-4">
-              {isEditing && (
-                <Button type="button" variant="destructive" onClick={handleCancel}>
-                  Cancelar Consulta
-                </Button>
-              )}
-              <Button type="submit">Salvar</Button>
+            <div className="flex justify-between items-center pt-4 border-t mt-2">
+              <div>
+                {isEditing &&
+                  (appointment?.status === 'agendada' || appointment?.status === 'confirmada') && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="bg-teal-700 hover:bg-teal-800 text-white"
+                      onClick={handleCompleteSession}
+                    >
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      Marcar como Realizada
+                    </Button>
+                  )}
+              </div>
+              <div className="flex justify-end gap-2">
+                {isEditing &&
+                  appointment?.status !== 'concluida' &&
+                  appointment?.status !== 'cancelada' && (
+                    <Button type="button" variant="destructive" onClick={handleCancel}>
+                      Cancelar Consulta
+                    </Button>
+                  )}
+                <Button type="submit">Salvar</Button>
+              </div>
             </div>
           </form>
         </Form>
