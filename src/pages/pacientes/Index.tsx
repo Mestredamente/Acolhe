@@ -54,6 +54,7 @@ export default function PacientesList() {
                   <TableHead>Paciente</TableHead>
                   <TableHead>Email/Telefone</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Portal</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -83,6 +84,24 @@ export default function PacientesList() {
                           }
                         >
                           {patient.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            (patient.status_convite || 'pendente') === 'aceito'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : (patient.status_convite || 'pendente') === 'enviado'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-800 border-slate-200'
+                          }
+                        >
+                          {(patient.status_convite || 'pendente') === 'aceito'
+                            ? 'Aceito'
+                            : (patient.status_convite || 'pendente') === 'enviado'
+                              ? 'Enviado'
+                              : 'Pendente'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

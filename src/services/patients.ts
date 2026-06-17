@@ -17,6 +17,8 @@ export interface Patient {
   status: 'active' | 'inactive'
   avatar: string
   last_consultation: string
+  link_convite?: string
+  status_convite?: 'pendente' | 'enviado' | 'aceito'
   created: string
   updated: string
   user_id: string

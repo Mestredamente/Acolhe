@@ -43,6 +43,16 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -73,6 +83,7 @@ import { Assinatura, getAssinaturasByPatient, createAssinatura } from '@/service
 import { SignatureDialog } from '@/components/SignatureDialog'
 import { BadgeCheck, AlertTriangle } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
+import { cn } from '@/lib/utils'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -105,6 +116,40 @@ export default function PatientDetails() {
     type: 'evolucao' | 'documento'
     id: string
   } | null>(null)
+
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+
+  const handleOpenInvite = () => {
+    const token =
+      Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    const url = `${window.location.origin}/portal/convite/${token}`
+    setInviteLink(url)
+    setInviteEmail(patient?.email || '')
+    setInviteModalOpen(true)
+  }
+
+  const handleSimulateInvite = async () => {
+    if (!patient) return
+    try {
+      const token = inviteLink.split('/').pop()
+      await updatePatient(patient.id, {
+        link_convite: token,
+        status_convite: 'enviado',
+      })
+      toast({ title: 'Convite enviado', description: 'O status do convite foi atualizado.' })
+      setInviteModalOpen(false)
+      loadData()
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Falha ao gerar convite', variant: 'destructive' })
+    }
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink)
+    toast({ title: 'Link copiado!', description: 'Link copiado para a área de transferência.' })
+  }
 
   const loadData = async () => {
     if (!id) return
@@ -518,6 +563,44 @@ export default function PatientDetails() {
                         Endereço de Cobrança
                       </p>
                       <p className="text-sm">{patient.billing_address || '-'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-sm border-l-4 border-l-primary/60">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Lock className="h-5 w-5 text-primary" /> Acesso ao Portal
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">
+                          Status do Convite
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            (patient.status_convite || 'pendente') === 'aceito'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : (patient.status_convite || 'pendente') === 'enviado'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-800 border-slate-200',
+                          )}
+                        >
+                          {(patient.status_convite || 'pendente') === 'aceito'
+                            ? 'Aceito'
+                            : (patient.status_convite || 'pendente') === 'enviado'
+                              ? 'Enviado'
+                              : 'Pendente'}
+                        </Badge>
+                      </div>
+                      {(patient.status_convite || 'pendente') !== 'aceito' && (
+                        <Button onClick={handleOpenInvite} variant="secondary" className="w-full">
+                          Gerar Link de Convite para o Portal
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1086,6 +1169,49 @@ export default function PatientDetails() {
           config?.assinatura_padrao ? pb.files.getURL(config, config.assinatura_padrao) : undefined
         }
       />
+
+      <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convite para o Portal do Paciente</DialogTitle>
+            <DialogDescription>
+              Gere e envie o link para que o paciente possa criar sua conta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-sm text-amber-800 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                O paciente receberá acesso ao portal para visualizar sessões, documentos e tarefas.
+                Certifique-se de que o email está correto. Conformidade LGPD.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Link Exclusivo</Label>
+              <div className="flex gap-2">
+                <Input value={inviteLink} readOnly />
+                <Button variant="outline" onClick={handleCopyLink} size="icon" className="shrink-0">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Email do Paciente</Label>
+              <Input
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSimulateInvite}>Simular envio</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

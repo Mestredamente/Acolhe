@@ -29,6 +29,7 @@ import MensagensList from './pages/mensagens/Index'
 import { PortalLayout } from './components/portal/PortalLayout'
 import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
 import NotificacoesList from './pages/notificacoes/Index'
+import { PortalOnboarding } from './pages/portal/Onboarding'
 
 const App = () => (
   <AuthProvider>
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
 
           <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/portal/convite/:token" element={<PortalOnboarding />} />
           <Route element={<PortalProtectedRoute />}>
             <Route element={<PortalLayout />}>
               <Route path="/portal" element={<PortalDashboard />} />
