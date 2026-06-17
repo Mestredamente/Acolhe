@@ -55,6 +55,8 @@ import {
 } from '@/components/ui/dialog'
 import { UsersTab } from './UsersTab'
 import { useAuth } from '@/hooks/use-auth'
+import { Shield } from 'lucide-react'
+import { SecuritySettings } from '@/components/SecuritySettings'
 
 const diasSemana = [
   { id: 'segunda', label: 'Segunda-feira' },
@@ -243,6 +245,12 @@ export default function Configuracoes() {
                 className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <Blocks className="w-4 h-4 mr-2" /> Integrações
+              </TabsTrigger>
+              <TabsTrigger
+                value="seguranca"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
+              >
+                <Shield className="w-4 h-4 mr-2" /> Segurança
               </TabsTrigger>
               {user?.profile === 'admin' && (
                 <TabsTrigger
@@ -965,6 +973,10 @@ export default function Configuracoes() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="seguranca" className="mt-4">
+              <SecuritySettings />
             </TabsContent>
 
             {user?.profile === 'admin' && (

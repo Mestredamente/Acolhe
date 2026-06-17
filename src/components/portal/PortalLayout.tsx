@@ -1,9 +1,26 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { LogOut, Home, BookHeart, CheckSquare, FileText, MessageSquare } from 'lucide-react'
+import {
+  LogOut,
+  Home,
+  BookHeart,
+  CheckSquare,
+  FileText,
+  MessageSquare,
+  Settings,
+  Shield,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationsPopover } from '@/components/NotificationsPopover'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function PortalLayout() {
   const { signOut } = useAuth()
@@ -50,14 +67,43 @@ export function PortalLayout() {
               })}
             </nav>
             <NotificationsPopover isPortal />
-            <Button
-              variant="ghost"
-              className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full"
-              onClick={signOut}
-            >
-              <LogOut className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Sair</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-emerald-600 hover:bg-emerald-50"
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 bg-white border-emerald-100 shadow-md rounded-xl"
+              >
+                <DropdownMenuLabel className="text-emerald-900 font-semibold">
+                  Minha Conta
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-emerald-50" />
+                <DropdownMenuItem
+                  asChild
+                  className="focus:bg-emerald-50 focus:text-emerald-800 rounded-lg cursor-pointer"
+                >
+                  <Link to="/portal/configuracoes" className="w-full flex items-center">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Segurança (2FA)
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-emerald-50" />
+                <DropdownMenuItem
+                  onClick={signOut}
+                  className="text-rose-600 focus:bg-rose-50 focus:text-rose-700 rounded-lg cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

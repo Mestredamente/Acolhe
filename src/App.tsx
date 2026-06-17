@@ -25,11 +25,13 @@ import { PortalDiario } from './pages/portal/Diario'
 import { PortalTarefas } from './pages/portal/Tarefas'
 import { PortalDocumentos } from './pages/portal/Documentos'
 import { PortalMensagens } from './pages/portal/Mensagens'
+import { PortalConfiguracoes } from './pages/portal/Configuracoes'
 import MensagensList from './pages/mensagens/Index'
 import { PortalLayout } from './components/portal/PortalLayout'
 import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
 import NotificacoesList from './pages/notificacoes/Index'
 import { PortalOnboarding } from './pages/portal/Onboarding'
+import { GlobalOnboarding } from './components/GlobalOnboarding'
 
 const App = () => (
   <AuthProvider>
@@ -50,11 +52,19 @@ const App = () => (
               <Route path="/portal/tarefas" element={<PortalTarefas />} />
               <Route path="/portal/documentos" element={<PortalDocumentos />} />
               <Route path="/portal/notificacoes" element={<NotificacoesList isPortal />} />
+              <Route path="/portal/configuracoes" element={<PortalConfiguracoes />} />
             </Route>
           </Route>
 
           <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
+            <Route
+              element={
+                <>
+                  <GlobalOnboarding />
+                  <Layout />
+                </>
+              }
+            >
               <Route path="/" element={<Index />} />
               <Route path="/secretaria/dashboard" element={<SecretaryDashboard />} />
               <Route path="/mensagens" element={<MensagensList />} />

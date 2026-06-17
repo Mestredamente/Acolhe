@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T06:25:18.471Z",
+  "generatedAt": "2026-06-17T10:49:36.172Z",
   "collections": [
     {
       "name": "users",
@@ -55,6 +55,18 @@
         {
           "name": "onboarding_completo",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dois_fa_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "codigo_verificacao",
+          "type": "text",
           "required": false,
           "system": false
         }

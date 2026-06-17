@@ -1,15 +1,14 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 
 export function ProtectedRoute() {
-  const { user, isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, is2FAVerified, loading } = useAuth()
+  const location = useLocation()
 
-  if (loading)
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (loading) return null
 
-  if (user?.profile === 'paciente') {
-    return <Navigate to="/portal" replace />
+  if (!isAuthenticated || !is2FAVerified) {
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return <Outlet />

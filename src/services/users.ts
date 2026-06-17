@@ -7,6 +7,8 @@ export interface User {
   profile: 'admin' | 'psicologo' | 'secretaria' | 'paciente'
   status: 'ativo' | 'inativo'
   onboarding_completo?: boolean
+  dois_fa_ativo?: boolean
+  codigo_verificacao?: string
   created: string
 }
 
