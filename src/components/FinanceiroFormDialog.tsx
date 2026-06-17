@@ -26,6 +26,7 @@ import { Transaction, createTransaction, updateTransaction } from '@/services/fi
 import { useToast } from '@/hooks/use-toast'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
 
 const schema = z.object({
   patient_id: z.string().min(1, 'Selecione um paciente'),
@@ -64,7 +65,16 @@ export function FinanceiroFormDialog({
   const { toast } = useToast()
   const [patients, setPatients] = useState<Patient[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [config, setConfig] = useState<ConfigClinica | null>(null)
   const isEditing = !!transaction
+
+  useEffect(() => {
+    if (open) {
+      getConfig(pb.authStore.record?.id || '')
+        .then(setConfig)
+        .catch(console.error)
+    }
+  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -107,16 +117,16 @@ export function FinanceiroFormDialog({
         patient_id: defaultPatientId || '',
         appointment_id: 'none',
         description: '',
-        amount: 0,
+        amount: config?.valor_consulta_padrao || 0,
         due_date: new Date().toISOString().substring(0, 10),
         payment_date: '',
         status: 'pendente',
-        payment_method: '',
+        payment_method: config?.metodo_pagamento_preferencial || '',
         installments: 1,
         observations: '',
       })
     }
-  }, [open, transaction, form, defaultPatientId])
+  }, [open, transaction, form, defaultPatientId, config])
 
   const selectedPatientId = form.watch('patient_id')
   const selectedAppointmentId = form.watch('appointment_id')

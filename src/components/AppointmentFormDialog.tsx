@@ -29,7 +29,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Patient, getPatients } from '@/services/patients'
 import { Appointment, createAppointment, updateAppointment } from '@/services/appointments'
 import { toast } from '@/components/ui/use-toast'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
+import pb from '@/lib/pocketbase/client'
 
 const schema = z.object({
   patient_id: z.string().min(1, 'Selecione um paciente'),
@@ -57,7 +59,16 @@ export function AppointmentFormDialog({
 }) {
   const [open, setOpen] = useState(false)
   const [patients, setPatients] = useState<Patient[]>([])
+  const [config, setConfig] = useState<ConfigClinica | null>(null)
   const isEditing = !!appointment
+
+  useEffect(() => {
+    if (open) {
+      getConfig(pb.authStore.record?.id || '')
+        .then(setConfig)
+        .catch(console.error)
+    }
+  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -80,6 +91,25 @@ export function AppointmentFormDialog({
       link_or_room: appointment?.link_or_room || '',
     },
   })
+
+  const startTime = form.watch('start_time')
+  const prevStartTime = useRef(startTime)
+
+  useEffect(() => {
+    if (startTime && startTime !== prevStartTime.current && config?.tempo_sessao_minutos) {
+      prevStartTime.current = startTime
+      const [h, m] = startTime.split(':').map(Number)
+      if (!isNaN(h) && !isNaN(m)) {
+        let totalMins = h * 60 + m + config.tempo_sessao_minutos
+        const endH = Math.floor(totalMins / 60) % 24
+        const endM = totalMins % 60
+        form.setValue(
+          'end_time',
+          `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`,
+        )
+      }
+    }
+  }, [startTime, config, form])
 
   useEffect(() => {
     if (appointment) {

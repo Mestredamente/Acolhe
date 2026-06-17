@@ -9,6 +9,7 @@ import PatientDetails from './pages/pacientes/PatientDetails'
 import PacientesList from './pages/pacientes/Index'
 import Agenda from './pages/agenda/Index'
 import Financeiro from './pages/financeiro/Index'
+import Configuracoes from './pages/configuracoes/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -51,7 +52,7 @@ const App = () => (
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/prontuarios" element={<Navigate to="/" replace />} />
               <Route path="/financeiro" element={<Financeiro />} />
-              <Route path="/configuracoes" element={<Navigate to="/" replace />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
           </Route>
 

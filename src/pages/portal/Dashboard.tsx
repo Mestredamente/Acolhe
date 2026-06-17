@@ -7,10 +7,13 @@ import type { Appointment } from '@/services/appointments'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { usePatientContext } from '@/components/portal/PortalProtectedRoute'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export function PortalDashboard() {
   const { patient } = usePatientContext()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [psicoConfig, setPsicoConfig] = useState<ConfigClinica | null>(null)
 
   useEffect(() => {
     pb.collection<Appointment>('appointments')
@@ -20,7 +23,11 @@ export function PortalDashboard() {
       })
       .then((res) => setAppointments(res.items))
       .catch(console.error)
-  }, [patient.id])
+
+    if (patient.user_id) {
+      getConfig(patient.user_id).then(setPsicoConfig).catch(console.error)
+    }
+  }, [patient.id, patient.user_id])
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -42,6 +49,50 @@ export function PortalDashboard() {
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-emerald-200/50 rounded-full blur-3xl" />
         <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-sky-200/50 rounded-full blur-3xl" />
       </div>
+
+      {psicoConfig?.nome_profissional && (
+        <Card className="border-emerald-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <Avatar className="w-24 h-24 border-4 border-emerald-50">
+                <AvatarImage
+                  src={
+                    psicoConfig.logo
+                      ? pb.files.getUrl(
+                          {
+                            collectionId: psicoConfig.id,
+                            collectionName: 'config_clinica',
+                            id: psicoConfig.id,
+                            logo: psicoConfig.logo,
+                          } as any,
+                          psicoConfig.logo,
+                        )
+                      : ''
+                  }
+                />
+                <AvatarFallback className="bg-emerald-100 text-emerald-800 text-2xl font-bold">
+                  {psicoConfig.nome_profissional.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-center sm:text-left flex-1">
+                <h3 className="text-xl font-bold text-emerald-900">
+                  {psicoConfig.nome_profissional}
+                </h3>
+                {psicoConfig.abordagem_principal && (
+                  <p className="text-emerald-700 font-medium mb-3">
+                    {psicoConfig.abordagem_principal}
+                  </p>
+                )}
+                {psicoConfig.texto_apresentacao && (
+                  <p className="text-slate-600 text-sm leading-relaxed max-w-2xl">
+                    {psicoConfig.texto_apresentacao}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/portal/diario" className="block group">

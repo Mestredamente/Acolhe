@@ -30,6 +30,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { createDocumento, updateDocumento, Documento } from '@/services/documentos'
 import pb from '@/lib/pocketbase/client'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
+import { useState } from 'react'
 
 const schema = z.object({
   file_name: z.string().min(1, 'Nome do arquivo é obrigatório'),
@@ -54,6 +56,31 @@ export function DocumentoFormDialog({
   onSaved: () => void
 }) {
   const { toast } = useToast()
+  const [config, setConfig] = useState<ConfigClinica | null>(null)
+
+  const docType = form.watch('doc_type')
+
+  useEffect(() => {
+    if (docType === 'termo_consentimento_lgpd' && !form.getValues('description') && config) {
+      const template = `TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (LGPD)
+
+Clínica: ${config.nome_clinica || '________________'}
+Psicólogo(a): ${config.nome_profissional || '________________'} - CRP: ${config.crp_psicologo || '_________'}
+
+Autorizo a coleta e armazenamento de meus dados sensíveis em prontuário, nos termos da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), para os fins exclusivos de atendimento psicológico.
+
+Declaro estar ciente de que o sigilo profissional será rigorosamente mantido, salvo nas exceções previstas pelo Código de Ética Profissional do Psicólogo.`
+      form.setValue('description', template)
+    }
+  }, [docType, config, form])
+
+  useEffect(() => {
+    if (open) {
+      getConfig(pb.authStore.record?.id || '')
+        .then(setConfig)
+        .catch(console.error)
+    }
+  }, [open])
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),

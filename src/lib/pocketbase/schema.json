@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T04:47:05.986Z",
+  "generatedAt": "2026-06-17T04:50:52.479Z",
   "collections": [
     {
       "name": "users",
@@ -996,6 +996,167 @@
         "CREATE INDEX idx_mensagens_patient ON mensagens (patient_id)",
         "CREATE INDEX idx_mensagens_created ON mensagens (created)"
       ]
+    },
+    {
+      "name": "config_clinica",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome_clinica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "crp_psicologo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documento_identificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco_completo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone_ddi",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email_contato",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cor_primaria",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tempo_sessao_minutos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_consulta_padrao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervalo_consultas_minutos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horario_inicio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horario_fim",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dias_atendimento",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "termos_responsabilidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_profissional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "abordagem_principal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tempo_formacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_apresentacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metodo_pagamento_preferencial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_recibo_padrao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_config_clinica_user ON config_clinica (user_id)"]
     }
   ]
 }
