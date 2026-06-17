@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T04:42:46.587Z",
+  "generatedAt": "2026-06-17T04:47:05.986Z",
   "collections": [
     {
       "name": "users",
@@ -923,6 +923,78 @@
       "indexes": [
         "CREATE INDEX idx_respostas_escala_patient ON respostas_escala (patient_id)",
         "CREATE INDEX idx_respostas_escala_status ON respostas_escala (status)"
+      ]
+    },
+    {
+      "name": "mensagens",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "view": "@request.auth.id != '' && (sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && recipient_id = @request.auth.id",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "sender_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "recipient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "read_status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["lida", "nao_lida"]
+        },
+        {
+          "name": "sender_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["psicologo", "paciente"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_mensagens_patient ON mensagens (patient_id)",
+        "CREATE INDEX idx_mensagens_created ON mensagens (created)"
       ]
     }
   ]

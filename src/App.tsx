@@ -17,6 +17,8 @@ import { PortalDashboard } from './pages/portal/Dashboard'
 import { PortalDiario } from './pages/portal/Diario'
 import { PortalTarefas } from './pages/portal/Tarefas'
 import { PortalDocumentos } from './pages/portal/Documentos'
+import { PortalMensagens } from './pages/portal/Mensagens'
+import MensagensList from './pages/mensagens/Index'
 import { PortalLayout } from './components/portal/PortalLayout'
 import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
 
@@ -33,6 +35,7 @@ const App = () => (
           <Route element={<PortalProtectedRoute />}>
             <Route element={<PortalLayout />}>
               <Route path="/portal" element={<PortalDashboard />} />
+              <Route path="/portal/mensagens" element={<PortalMensagens />} />
               <Route path="/portal/diario" element={<PortalDiario />} />
               <Route path="/portal/tarefas" element={<PortalTarefas />} />
               <Route path="/portal/documentos" element={<PortalDocumentos />} />
@@ -42,6 +45,7 @@ const App = () => (
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/mensagens" element={<MensagensList />} />
               <Route path="/pacientes" element={<PacientesList />} />
               <Route path="/pacientes/:id" element={<PatientDetails />} />
               <Route path="/agenda" element={<Agenda />} />

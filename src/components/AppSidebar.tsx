@@ -7,6 +7,7 @@ import {
   DollarSign,
   Settings,
   BrainCircuit,
+  MessageSquare,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -21,6 +22,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Mensagens', href: '/mensagens', icon: MessageSquare },
   { name: 'Pacientes', href: '/pacientes', icon: Users },
   { name: 'Agenda', href: '/agenda', icon: Calendar },
   { name: 'Prontuários', href: '/prontuarios', icon: FileText },

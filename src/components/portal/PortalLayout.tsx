@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { LogOut, Home, BookHeart, CheckSquare, FileText } from 'lucide-react'
+import { LogOut, Home, BookHeart, CheckSquare, FileText, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function PortalLayout() {
@@ -10,6 +10,7 @@ export function PortalLayout() {
 
   const navItems = [
     { name: 'Início', path: '/portal', icon: Home },
+    { name: 'Mensagens', path: '/portal/mensagens', icon: MessageSquare },
     { name: 'Diário', path: '/portal/diario', icon: BookHeart },
     { name: 'Tarefas', path: '/portal/tarefas', icon: CheckSquare },
     { name: 'Documentos', path: '/portal/documentos', icon: FileText },
