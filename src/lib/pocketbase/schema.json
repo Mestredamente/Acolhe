@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T04:15:13.869Z",
+  "generatedAt": "2026-06-17T04:24:50.349Z",
   "collections": [
     {
       "name": "users",
@@ -526,6 +526,116 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_anamneses_patient ON anamneses (patient_id)"]
+    },
+    {
+      "name": "financeiro",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "appointment_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "appointments"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "payment_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "pago", "atrasado", "cancelado", "aguardando"]
+        },
+        {
+          "name": "payment_method",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "pix",
+            "dinheiro",
+            "cartao de credito",
+            "cartao de debito",
+            "boleto",
+            "transferencia"
+          ]
+        },
+        {
+          "name": "installments",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_financeiro_patient ON financeiro (patient_id)",
+        "CREATE INDEX idx_financeiro_status ON financeiro (status)",
+        "CREATE INDEX idx_financeiro_due_date ON financeiro (due_date)"
+      ]
     }
   ]
 }

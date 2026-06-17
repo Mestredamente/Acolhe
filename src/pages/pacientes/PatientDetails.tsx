@@ -51,8 +51,10 @@ import { useToast } from '@/hooks/use-toast'
 import { getPatient, updatePatient, deletePatient, Patient } from '@/services/patients'
 import { Appointment } from '@/services/appointments'
 import { Evolucao, getEvolucoes, deleteEvolucao } from '@/services/evolucoes'
+import { Transaction, getTransactionsByPatient } from '@/services/financeiro'
 import { PatientForm } from '@/components/PatientForm'
 import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
+import { FinanceiroFormDialog } from '@/components/FinanceiroFormDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
@@ -65,8 +67,11 @@ export default function PatientDetails() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [evolucoes, setEvolucoes] = useState<Evolucao[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
 
   const [isEditing, setIsEditing] = useState(false)
+  const [finFormOpen, setFinFormOpen] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [evoFormOpen, setEvoFormOpen] = useState(false)
@@ -84,6 +89,7 @@ export default function PatientDetails() {
         }),
       )
       setEvolucoes(await getEvolucoes(id))
+      setTransactions(await getTransactionsByPatient(id))
     } catch (e) {
       toast({ title: 'Erro', description: 'Paciente não encontrado.', variant: 'destructive' })
     } finally {
@@ -100,6 +106,10 @@ export default function PatientDetails() {
   })
 
   useRealtime('evolucoes', (e) => {
+    if (e.record.patient_id === id) loadData()
+  })
+
+  useRealtime('financeiro', (e) => {
     if (e.record.patient_id === id) loadData()
   })
 
@@ -561,19 +571,141 @@ export default function PatientDetails() {
           <AnamneseTab patientId={patient.id} />
         </TabsContent>
 
-        {['documentos', 'financeiro'].map((tab) => (
-          <TabsContent key={tab} value={tab} className="mt-6">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="capitalize">{tab}</CardTitle>
-                <CardDescription>Gestão de {tab} do paciente.</CardDescription>
+        <TabsContent value="documentos" className="mt-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="capitalize">Documentos</CardTitle>
+              <CardDescription>Gestão de documentos do paciente.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-32 flex items-center justify-center border-t border-dashed bg-muted/20">
+              <p className="text-muted-foreground text-sm">
+                Área em desenvolvimento para documentos.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financeiro" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Histórico Financeiro</h3>
+            <Button
+              onClick={() => {
+                setEditingTransaction(null)
+                setFinFormOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="shadow-sm border-l-4 border-l-teal-500">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Pago
+                </CardTitle>
               </CardHeader>
-              <CardContent className="h-32 flex items-center justify-center border-t border-dashed bg-muted/20">
-                <p className="text-muted-foreground text-sm">Área em desenvolvimento para {tab}.</p>
+              <CardContent>
+                <div className="text-2xl font-bold text-teal-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    transactions
+                      .filter((t) => t.status === 'pago')
+                      .reduce((acc, t) => acc + t.amount, 0),
+                  )}
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        ))}
+            <Card className="shadow-sm border-l-4 border-l-amber-500">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Pendente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    transactions
+                      .filter((t) => ['pendente', 'atrasado', 'aguardando'].includes(t.status))
+                      .reduce((acc, t) => acc + t.amount, 0),
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      {t.due_date
+                        ? new Date(t.due_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                        : '-'}
+                    </TableCell>
+                    <TableCell>{t.description}</TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(t.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          t.status === 'pago'
+                            ? 'default'
+                            : t.status === 'atrasado'
+                              ? 'destructive'
+                              : t.status === 'cancelado'
+                                ? 'secondary'
+                                : 'outline'
+                        }
+                        className={
+                          t.status === 'pago'
+                            ? 'bg-teal-600'
+                            : t.status === 'pendente'
+                              ? 'text-amber-600 border-amber-600'
+                              : ''
+                        }
+                      >
+                        {t.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingTransaction(t)
+                          setFinFormOpen(true)
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {transactions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhum lançamento financeiro.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <EvolutionFormDialog
@@ -641,6 +773,13 @@ export default function PatientDetails() {
           )}
         </SheetContent>
       </Sheet>
+
+      <FinanceiroFormDialog
+        open={finFormOpen}
+        onOpenChange={setFinFormOpen}
+        transaction={editingTransaction}
+        defaultPatientId={patient.id}
+      />
     </div>
   )
 }
