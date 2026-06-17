@@ -30,8 +30,26 @@ const navigation = [
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 
+import { useAuth } from '@/hooks/use-auth'
+
 export function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuth()
+  const isSecretaria = user?.profile === 'secretaria'
+
+  const filteredNav = [
+    {
+      name: 'Dashboard',
+      href: isSecretaria ? '/secretaria/dashboard' : '/',
+      icon: LayoutDashboard,
+    },
+    { name: 'Mensagens', href: '/mensagens', icon: MessageSquare, hidden: isSecretaria },
+    { name: 'Pacientes', href: '/pacientes', icon: Users },
+    { name: 'Agenda', href: '/agenda', icon: Calendar },
+    { name: 'Prontuários', href: '/prontuarios', icon: FileText, hidden: isSecretaria },
+    { name: 'Financeiro', href: '/financeiro', icon: DollarSign, hidden: isSecretaria },
+    { name: 'Configurações', href: '/configuracoes', icon: Settings },
+  ].filter((item) => !item.hidden)
 
   return (
     <Sidebar className="border-r border-border">
@@ -47,7 +65,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2 px-2">
-              {navigation.map((item) => {
+              {filteredNav.map((item) => {
                 const isActive =
                   location.pathname === item.href ||
                   (item.href !== '/' && location.pathname.startsWith(item.href))

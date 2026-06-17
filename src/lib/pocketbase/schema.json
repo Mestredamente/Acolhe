@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-06-17T05:02:20.353Z",
+  "generatedAt": "2026-06-17T05:08:08.624Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "id = @request.auth.id || @request.auth.profile = 'admin'",
+        "view": "id = @request.auth.id || @request.auth.profile = 'admin'",
         "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "update": "id = @request.auth.id || @request.auth.profile = 'admin'",
+        "delete": "id = @request.auth.id || @request.auth.profile = 'admin'"
       },
       "fields": [
         {
@@ -37,6 +37,20 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "profile",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "psicologo", "secretaria", "paciente"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
         }
       ],
       "indexes": [
@@ -48,10 +62,10 @@
       "name": "patients",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (user_id = @request.auth.id || email = @request.auth.email)",
-        "view": "@request.auth.id != '' && (user_id = @request.auth.id || email = @request.auth.email)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || email = @request.auth.email || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || email = @request.auth.email || user_id = @request.auth.id)",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
       },
       "fields": [
@@ -174,10 +188,10 @@
       "name": "appointments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
-        "view": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || patient_id.email = @request.auth.email || user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || patient_id.email = @request.auth.email || user_id = @request.auth.id)",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
       },
       "fields": [

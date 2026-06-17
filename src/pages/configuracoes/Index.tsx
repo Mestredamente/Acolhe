@@ -15,6 +15,7 @@ import {
   Video,
   CheckCircle2,
   Unplug,
+  Users,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { getConfig, saveConfig, ConfigClinica } from '@/services/config_clinica'
@@ -52,6 +53,8 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { UsersTab } from './UsersTab'
+import { useAuth } from '@/hooks/use-auth'
 
 const diasSemana = [
   { id: 'segunda', label: 'Segunda-feira' },
@@ -98,6 +101,7 @@ export default function Configuracoes() {
   const [openGoogle, setOpenGoogle] = useState(false)
   const [openZoom, setOpenZoom] = useState(false)
 
+  const { user } = useAuth()
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -195,37 +199,45 @@ export default function Configuracoes() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="clinica" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+            <TabsList className="flex flex-wrap h-auto w-full border-b rounded-none bg-transparent gap-2 pb-2">
               <TabsTrigger
                 value="clinica"
-                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <Building2 className="w-4 h-4 mr-2" /> Clínica
               </TabsTrigger>
               <TabsTrigger
                 value="profissionais"
-                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <UserCircle className="w-4 h-4 mr-2" /> Profissional
               </TabsTrigger>
               <TabsTrigger
                 value="agenda"
-                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <Clock className="w-4 h-4 mr-2" /> Agenda
               </TabsTrigger>
               <TabsTrigger
                 value="financeiro"
-                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <DollarSign className="w-4 h-4 mr-2" /> Financeiro
               </TabsTrigger>
               <TabsTrigger
                 value="integracoes"
-                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <Blocks className="w-4 h-4 mr-2" /> Integrações
               </TabsTrigger>
+              {user?.profile === 'admin' && (
+                <TabsTrigger
+                  value="usuarios"
+                  className="py-2 px-4 data-[state=active]:bg-teal-700 data-[state=active]:text-white rounded-md border border-slate-200 ml-auto"
+                >
+                  <Users className="w-4 h-4 mr-2" /> Usuários e Permissões
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="clinica" className="mt-4">
@@ -900,6 +912,12 @@ export default function Configuracoes() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {user?.profile === 'admin' && (
+              <TabsContent value="usuarios" className="mt-4">
+                <UsersTab />
+              </TabsContent>
+            )}
           </Tabs>
 
           <div className="flex justify-end pt-6 border-t border-slate-100">

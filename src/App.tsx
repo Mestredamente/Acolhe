@@ -13,6 +13,7 @@ import Configuracoes from './pages/configuracoes/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { SecretaryDashboard } from './pages/secretaria/Dashboard'
 import { PortalLogin } from './pages/portal/Login'
 import { PortalDashboard } from './pages/portal/Dashboard'
 import { PortalDiario } from './pages/portal/Diario'
@@ -46,6 +47,7 @@ const App = () => (
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/secretaria/dashboard" element={<SecretaryDashboard />} />
               <Route path="/mensagens" element={<MensagensList />} />
               <Route path="/pacientes" element={<PacientesList />} />
               <Route path="/pacientes/:id" element={<PatientDetails />} />
