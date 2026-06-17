@@ -58,6 +58,16 @@ export function DocumentoFormDialog({
   const { toast } = useToast()
   const [config, setConfig] = useState<ConfigClinica | null>(null)
 
+  const form = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      file_name: '',
+      doc_type: '',
+      description: '',
+      status: 'privado',
+    },
+  })
+
   const docType = form.watch('doc_type')
 
   useEffect(() => {
@@ -81,16 +91,6 @@ Declaro estar ciente de que o sigilo profissional será rigorosamente mantido, s
         .catch(console.error)
     }
   }, [open])
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      file_name: '',
-      doc_type: '',
-      description: '',
-      status: 'privado',
-    },
-  })
 
   useEffect(() => {
     if (open) {
