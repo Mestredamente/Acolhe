@@ -17,7 +17,23 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getPatients, Patient } from '@/services/patients'
 import { getAppointments, Appointment } from '@/services/appointments'
 import { PatientFormDialog } from '@/components/PatientFormDialog'
+import { AppointmentFormDialog } from '@/components/AppointmentFormDialog'
 import pb from '@/lib/pocketbase/client'
+import { cn } from '@/lib/utils'
+
+const statusColors: Record<string, string> = {
+  agendada: 'text-gray-500 bg-gray-100 border-gray-200',
+  confirmada: 'text-green-600 bg-green-100 border-green-200',
+  cancelada: 'text-red-600 bg-red-100 border-red-200',
+  concluida: 'text-blue-600 bg-blue-100 border-blue-200',
+}
+
+const statusLabels: Record<string, string> = {
+  agendada: 'Agendada',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+  concluida: 'Concluída',
+}
 
 export default function Index() {
   const [patients, setPatients] = useState<Patient[]>([])
@@ -44,10 +60,10 @@ export default function Index() {
     [patients],
   )
 
-  const { aptsToday, aptsWeek } = useMemo(() => {
+  const { aptsToday, aptsWeek, todayAppointments } = useMemo(() => {
     const now = new Date()
-    const startOfToday = new Date(now.setHours(0, 0, 0, 0))
-    const endOfToday = new Date(now.setHours(23, 59, 59, 999))
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
 
     const startOfWeek = new Date(startOfToday)
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
@@ -57,16 +73,22 @@ export default function Index() {
 
     let todayCount = 0
     let weekCount = 0
+    const todayList: typeof appointments = []
 
     appointments.forEach((a) => {
-      const d = new Date(a.time)
-      if (d >= startOfToday && d <= endOfToday) todayCount++
+      if (!a.appointment_date) return
+      const d = new Date(a.appointment_date)
+      if (d >= startOfToday && d <= endOfToday) {
+        todayCount++
+        todayList.push(a)
+      }
       if (d >= startOfWeek && d <= endOfWeek) weekCount++
     })
-    return { aptsToday: todayCount, aptsWeek: weekCount }
-  }, [appointments])
 
-  const upcomingApts = appointments.filter((a) => new Date(a.time) >= new Date()).slice(0, 5)
+    todayList.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+
+    return { aptsToday: todayCount, aptsWeek: weekCount, todayAppointments: todayList }
+  }, [appointments])
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -113,50 +135,52 @@ export default function Index() {
                 </Button>
               }
             />
-            <Button
-              variant="outline"
-              className="w-full justify-start text-left font-medium bg-white"
-              size="sm"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" /> Nova Consulta
-            </Button>
+            <AppointmentFormDialog
+              trigger={
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-medium bg-white"
+                  size="sm"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" /> Nova Consulta
+                </Button>
+              }
+            />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-1 lg:col-span-3 shadow-sm">
+        <Card className="col-span-1 lg:col-span-3 shadow-sm flex flex-col">
           <CardHeader>
-            <CardTitle className="text-lg text-primary">Próximas Consultas</CardTitle>
+            <CardTitle className="text-lg text-primary">Consultas de Hoje</CardTitle>
           </CardHeader>
-          <CardContent>
-            {upcomingApts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma consulta futura agendada.</p>
+          <CardContent className="flex-1 overflow-y-auto">
+            {todayAppointments.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma consulta agendada para hoje.
+                </p>
+              </div>
             ) : (
               <div className="space-y-6">
-                {upcomingApts.map((apt) => {
-                  const d = new Date(apt.time)
-                  return (
-                    <div key={apt.id} className="flex items-center">
-                      <div className="w-20 text-sm font-medium text-muted-foreground">
-                        {d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}{' '}
-                        {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      <div className="flex-1 space-y-1 ml-2">
-                        <p className="text-sm font-medium leading-none">
-                          {apt.expand?.patient_id?.name || 'Desconhecido'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{apt.type}</p>
-                      </div>
-                      <Badge
-                        variant={apt.type === 'Online' ? 'secondary' : 'outline'}
-                        className="ml-auto"
-                      >
-                        {apt.type}
-                      </Badge>
+                {todayAppointments.map((apt) => (
+                  <div key={apt.id} className="flex items-center">
+                    <div className="w-16 text-sm font-medium text-foreground">{apt.start_time}</div>
+                    <div className="flex-1 space-y-1 ml-2">
+                      <p className="text-sm font-medium leading-none">
+                        {apt.patient_name_text || apt.expand?.patient_id?.name || 'Desconhecido'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{apt.type}</p>
                     </div>
-                  )
-                })}
+                    <Badge
+                      variant="outline"
+                      className={cn('ml-auto border', statusColors[apt.status] || '')}
+                    >
+                      {statusLabels[apt.status] || apt.status}
+                    </Badge>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

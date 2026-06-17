@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T03:55:46.352Z",
+  "generatedAt": "2026-06-17T04:02:58.281Z",
   "collections": [
     {
       "name": "users",
@@ -198,7 +198,7 @@
         {
           "name": "time",
           "type": "date",
-          "required": true,
+          "required": false,
           "system": false
         },
         {
@@ -221,9 +221,55 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "patient_name_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "appointment_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "start_time",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "end_time",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["agendada", "confirmada", "cancelada", "concluida"]
+        },
+        {
+          "name": "observations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link_or_room",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE INDEX `idx_appointments_date` ON `appointments` (appointment_date)",
+        "CREATE INDEX `idx_appointments_status` ON `appointments` (status)"
+      ]
     }
   ]
 }
