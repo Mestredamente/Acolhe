@@ -16,6 +16,8 @@ import {
 import { useRealtime } from '@/hooks/use-realtime'
 import { getPatients, Patient } from '@/services/patients'
 import { getAppointments, Appointment } from '@/services/appointments'
+import { getAllPendingRespostas, RespostaEscala } from '@/services/escalas'
+import { ClipboardList } from 'lucide-react'
 import { PatientFormDialog } from '@/components/PatientFormDialog'
 import { AppointmentFormDialog } from '@/components/AppointmentFormDialog'
 import pb from '@/lib/pocketbase/client'
@@ -38,12 +40,18 @@ const statusLabels: Record<string, string> = {
 export default function Index() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [pendingEscalas, setPendingEscalas] = useState<RespostaEscala[]>([])
 
   const loadData = async () => {
     try {
-      const [pts, apts] = await Promise.all([getPatients(), getAppointments()])
+      const [pts, apts, escalas] = await Promise.all([
+        getPatients(),
+        getAppointments(),
+        getAllPendingRespostas(),
+      ])
       setPatients(pts)
       setAppointments(apts)
+      setPendingEscalas(escalas)
     } catch (e) {
       console.error(e)
     }
@@ -54,6 +62,7 @@ export default function Index() {
   }, [])
   useRealtime('patients', loadData)
   useRealtime('appointments', loadData)
+  useRealtime('respostas_escala', loadData)
 
   const activePatients = useMemo(
     () => patients.filter((p) => p.status === 'active').length,
@@ -97,7 +106,7 @@ export default function Index() {
         <p className="text-muted-foreground">Resumo do seu dia e da clínica.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pacientes Ativos</CardTitle>
@@ -124,6 +133,16 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{aptsWeek}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Escalas Pendentes</CardTitle>
+            <ClipboardList className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{pendingEscalas.length}</div>
+            <p className="text-xs text-muted-foreground">Aguardando pacientes</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm bg-accent/30 border-primary/20">

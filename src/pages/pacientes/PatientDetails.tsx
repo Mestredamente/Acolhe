@@ -60,6 +60,7 @@ import { FinanceiroFormDialog } from '@/components/FinanceiroFormDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
+import { EscalasTab } from '@/components/EscalasTab'
 import { DocumentoFormDialog } from '@/components/DocumentoFormDialog'
 import {
   getDocumentosByPatient,
@@ -358,6 +359,12 @@ export default function PatientDetails() {
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
           >
             Financeiro
+          </TabsTrigger>
+          <TabsTrigger
+            value="escalas"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
+          >
+            Escalas e Questionários
           </TabsTrigger>
         </TabsList>
 
@@ -729,6 +736,10 @@ export default function PatientDetails() {
               Conformidade LGPD.
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="escalas" className="mt-6">
+          <EscalasTab patientId={patient.id} />
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-6 space-y-6">

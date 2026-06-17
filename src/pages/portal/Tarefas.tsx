@@ -1,55 +1,85 @@
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
+import { getRespostasPendenteForPortal, RespostaEscala } from '@/services/escalas'
+import { EscalaResponderDialog } from '@/components/EscalaResponderDialog'
+import { Button } from '@/components/ui/button'
+import { FileText, ClipboardList } from 'lucide-react'
 
 export function PortalTarefas() {
+  const [respostas, setRespostas] = useState<RespostaEscala[]>([])
+  const [selected, setSelected] = useState<RespostaEscala | null>(null)
+  const [open, setOpen] = useState(false)
+
+  const loadData = async () => {
+    try {
+      setRespostas(await getRespostasPendenteForPortal())
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
       <h2 className="text-3xl font-bold text-emerald-900 tracking-tight">Tarefas e Escalas</h2>
       <Card className="border-emerald-100 shadow-sm bg-white rounded-2xl overflow-hidden">
         <CardHeader className="bg-emerald-50/50 border-b border-emerald-100">
-          <CardTitle className="text-emerald-800 text-xl">Atividades Pendentes</CardTitle>
+          <CardTitle className="text-emerald-800 text-xl">Escalas Pendentes</CardTitle>
           <CardDescription className="text-base mt-1">
-            Conclua as tarefas indicadas pelo seu terapeuta.
+            Responda aos questionários solicitados pelo seu profissional.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-start space-x-4 p-5 bg-white rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-300 transition-colors">
-            <Checkbox
-              id="t1"
-              className="mt-1 w-5 h-5 border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-            />
-            <div>
-              <label
-                htmlFor="t1"
-                className="font-semibold text-emerald-900 cursor-pointer text-base"
-              >
-                Questionário de Ansiedade (BAI)
-              </label>
-              <p className="text-sm text-emerald-700/80 mt-1 leading-relaxed">
-                Preencher a escala baseada nos últimos 7 dias. Responda de acordo com a intensidade
-                dos sintomas.
-              </p>
+          {respostas.length === 0 ? (
+            <div className="text-center py-12 text-emerald-700/60">
+              <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p>Nenhuma escala pendente no momento.</p>
             </div>
-          </div>
-          <div className="flex items-start space-x-4 p-5 bg-white rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-300 transition-colors">
-            <Checkbox
-              id="t2"
-              className="mt-1 w-5 h-5 border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-            />
-            <div>
-              <label
-                htmlFor="t2"
-                className="font-semibold text-emerald-900 cursor-pointer text-base"
-              >
-                Exercício de Respiração Diafragmática
-              </label>
-              <p className="text-sm text-emerald-700/80 mt-1 leading-relaxed">
-                Praticar por 5 minutos antes de dormir, utilizando a técnica guiada (4-7-8).
-              </p>
-            </div>
-          </div>
+          ) : (
+            respostas.map((resp) => {
+              const esc = resp.expand?.scale_id
+              if (!esc) return null
+              return (
+                <div
+                  key={resp.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-300 transition-colors gap-4"
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700 shrink-0">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-emerald-900 text-lg">{esc.name}</h3>
+                      <p className="text-sm text-emerald-700/80 mt-1 leading-relaxed max-w-xl">
+                        {esc.description}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 shrink-0"
+                    onClick={() => {
+                      setSelected(resp)
+                      setOpen(true)
+                    }}
+                  >
+                    Responder
+                  </Button>
+                </div>
+              )
+            })
+          )}
         </CardContent>
       </Card>
+
+      <EscalaResponderDialog
+        open={open}
+        onOpenChange={setOpen}
+        resposta={selected}
+        onSaved={loadData}
+      />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T04:37:25.405Z",
+  "generatedAt": "2026-06-17T04:42:46.587Z",
   "collections": [
     {
       "name": "users",
@@ -782,6 +782,147 @@
       "indexes": [
         "CREATE INDEX idx_documentos_patient ON documentos (patient_id)",
         "CREATE INDEX idx_documentos_status ON documentos (status)"
+      ]
+    },
+    {
+      "name": "escalas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "application_instructions",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "questions",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "respostas_escala",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "view": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "create": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "update": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "scale_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "escalas"
+        },
+        {
+          "name": "response_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responses_list",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_interpretation",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "respondido"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_respostas_escala_patient ON respostas_escala (patient_id)",
+        "CREATE INDEX idx_respostas_escala_status ON respostas_escala (status)"
       ]
     }
   ]
