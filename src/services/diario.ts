@@ -16,6 +16,9 @@ export const getDiarioEntries = (patientId: string) =>
     .collection<DiarioEntry>('diario_paciente')
     .getFullList({ filter: `patient_id="${patientId}"`, sort: '-entry_date' })
 
+export const getAllDiarios = () =>
+  pb.collection<DiarioEntry>('diario_paciente').getFullList({ sort: '-entry_date' })
+
 export const createDiarioEntry = (data: Partial<DiarioEntry>) =>
   pb.collection<DiarioEntry>('diario_paciente').create({
     ...data,

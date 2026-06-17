@@ -11,6 +11,7 @@ import {
   BarChart3,
   Receipt,
   Bot,
+  Activity,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -46,6 +47,7 @@ export function AppSidebar() {
       href: isSecretaria ? '/secretaria/dashboard' : '/',
       icon: LayoutDashboard,
     },
+    { name: 'Insights Clínicos', href: '/insights', icon: Activity, hidden: isSecretaria },
     { name: 'Mensagens', href: '/mensagens', icon: MessageSquare, hidden: isSecretaria },
     { name: 'Pacientes', href: '/pacientes', icon: Users },
     { name: 'Agenda', href: '/agenda', icon: Calendar },

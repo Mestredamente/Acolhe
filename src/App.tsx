@@ -13,6 +13,7 @@ import Faturamento from './pages/faturamento/Index'
 import Configuracoes from './pages/configuracoes/Index'
 import RelatoriosList from './pages/relatorios/Index'
 import AutomacoesList from './pages/automacoes/Index'
+import InsightsList from './pages/insights/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/faturamento" element={<Faturamento />} />
               <Route path="/relatorios" element={<RelatoriosList />} />
               <Route path="/automacoes" element={<AutomacoesList />} />
+              <Route path="/insights" element={<InsightsList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
             </Route>
