@@ -12,12 +12,23 @@ import {
   Calendar,
   Pencil,
   Trash2,
+  Plus,
+  ChevronRight,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,9 +40,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
 import { getPatient, updatePatient, deletePatient, Patient } from '@/services/patients'
+import { Appointment } from '@/services/appointments'
+import { Evolucao, getEvolucoes, deleteEvolucao } from '@/services/evolucoes'
 import { PatientForm } from '@/components/PatientForm'
+import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 
@@ -41,13 +62,29 @@ export default function PatientDetails() {
   const { toast } = useToast()
 
   const [patient, setPatient] = useState<Patient | null>(null)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [evolucoes, setEvolucoes] = useState<Evolucao[]>([])
+
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const [evoFormOpen, setEvoFormOpen] = useState(false)
+  const [editingEvo, setEditingEvo] = useState<Evolucao | null>(null)
+  const [viewingEvo, setViewingEvo] = useState<Evolucao | null>(null)
 
   const loadData = async () => {
     if (!id) return
     try {
       setPatient(await getPatient(id))
+      setAppointments(
+        await pb
+          .collection<Appointment>('appointments')
+          .getFullList({
+            filter: `patient_id = '${id}'`,
+            sort: '-appointment_date,-start_time,-time',
+          }),
+      )
+      setEvolucoes(await getEvolucoes(id))
     } catch (e) {
       toast({ title: 'Erro', description: 'Paciente não encontrado.', variant: 'destructive' })
     } finally {
@@ -58,8 +95,13 @@ export default function PatientDetails() {
   useEffect(() => {
     loadData()
   }, [id])
+
   useRealtime('patients', (e) => {
     if (e.record.id === id) loadData()
+  })
+
+  useRealtime('evolucoes', (e) => {
+    if (e.record.patient_id === id) loadData()
   })
 
   if (loading)
@@ -112,6 +154,21 @@ export default function PatientDetails() {
       toast({
         title: 'Erro',
         description: 'Não foi possível remover o paciente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteEvo = async (evoId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta evolução?')) return
+    try {
+      await deleteEvolucao(evoId)
+      toast({ title: 'Excluído', description: 'Evolução removida com sucesso.' })
+      loadData()
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover a evolução.',
         variant: 'destructive',
       })
     }
@@ -210,12 +267,6 @@ export default function PatientDetails() {
             Dados Cadastrais
           </TabsTrigger>
           <TabsTrigger
-            value="anamnese"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
-          >
-            Anamnese
-          </TabsTrigger>
-          <TabsTrigger
             value="prontuario"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
           >
@@ -226,6 +277,12 @@ export default function PatientDetails() {
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
           >
             Evoluções
+          </TabsTrigger>
+          <TabsTrigger
+            value="anamnese"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
+          >
+            Anamnese
           </TabsTrigger>
           <TabsTrigger
             value="documentos"
@@ -346,7 +403,162 @@ export default function PatientDetails() {
           )}
         </TabsContent>
 
-        {['anamnese', 'prontuario', 'evolucoes', 'documentos', 'financeiro'].map((tab) => (
+        <TabsContent value="prontuario" className="mt-6 space-y-6">
+          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
+            <div className="text-sm text-yellow-800">
+              <strong>Aviso Importante:</strong> Este prontuário é de responsabilidade exclusiva do
+              profissional. A IA auxilia na estruturação, mas não substitui o julgamento clínico.
+              Conformidade CFP.
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Resumo de Evoluções</h3>
+            <Button
+              onClick={() => {
+                setEditingEvo(null)
+                setEvoFormOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Nova Evolução
+            </Button>
+          </div>
+
+          <Card className="shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data da Sessão</TableHead>
+                  <TableHead>Resumo IA</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {evolucoes.map((evo) => (
+                  <TableRow
+                    key={evo.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setViewingEvo(evo)}
+                  >
+                    <TableCell className="font-medium whitespace-nowrap">
+                      {new Date(evo.session_date).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell className="max-w-[150px] md:max-w-[300px] truncate text-muted-foreground">
+                      {evo.ai_summary || 'Sem resumo'}
+                    </TableCell>
+                    <TableCell>
+                      {evo.is_signed ? (
+                        <Badge variant="default" className="bg-teal-600">
+                          Assinado
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Pendente</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {evolucoes.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      Nenhuma evolução registrada.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="evolucoes" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Histórico Completo</h3>
+            <Button
+              onClick={() => {
+                setEditingEvo(null)
+                setEvoFormOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Nova Evolução
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {evolucoes.map((evo) => (
+              <Card key={evo.id} className="shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary shrink-0" />
+                        Sessão em {new Date(evo.session_date).toLocaleDateString('pt-BR')}
+                        {evo.is_signed ? (
+                          <Badge
+                            variant="outline"
+                            className="text-teal-600 border-teal-600 ml-2 hidden sm:inline-flex"
+                          >
+                            Assinada
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="ml-2 hidden sm:inline-flex">
+                            Pendente
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditingEvo(evo)
+                          setEvoFormOpen(true)
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteEvo(evo.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1">
+                      Notas da Sessão
+                    </h4>
+                    <p className="text-sm whitespace-pre-wrap">{evo.content}</p>
+                  </div>
+                  {evo.ai_summary && (
+                    <div className="bg-muted/30 p-3 rounded-md border border-muted">
+                      <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1 mb-1">
+                        <Wand2 className="h-3 w-3" /> Resumo Estruturado (IA)
+                      </h4>
+                      <p className="text-sm italic text-muted-foreground">{evo.ai_summary}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+            {evolucoes.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhuma evolução registrada para este paciente.
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {['anamnese', 'documentos', 'financeiro'].map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-6">
             <Card className="shadow-sm">
               <CardHeader>
@@ -360,6 +572,72 @@ export default function PatientDetails() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <EvolutionFormDialog
+        patientId={patient.id}
+        appointments={appointments}
+        evolution={editingEvo}
+        open={evoFormOpen}
+        onOpenChange={setEvoFormOpen}
+        onSaved={loadData}
+      />
+
+      <Sheet open={!!viewingEvo} onOpenChange={(open) => !open && setViewingEvo(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Detalhes da Evolução
+            </SheetTitle>
+            <SheetDescription>
+              {viewingEvo &&
+                `Sessão em ${new Date(viewingEvo.session_date).toLocaleDateString('pt-BR')}`}
+            </SheetDescription>
+          </SheetHeader>
+          {viewingEvo && (
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                  <Badge
+                    variant={viewingEvo.is_signed ? 'default' : 'secondary'}
+                    className={viewingEvo.is_signed ? 'bg-teal-600' : ''}
+                  >
+                    {viewingEvo.is_signed ? 'Assinado Digitalmente' : 'Pendente de Assinatura'}
+                  </Badge>
+                </h4>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Notas da Sessão</h4>
+                <div className="bg-muted/20 p-4 rounded-md text-sm whitespace-pre-wrap border">
+                  {viewingEvo.content}
+                </div>
+              </div>
+              {viewingEvo.ai_summary && (
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                    <Wand2 className="h-4 w-4 text-primary" /> Resumo Estruturado (IA)
+                  </h4>
+                  <div className="bg-muted/50 p-4 rounded-md text-sm italic border text-muted-foreground">
+                    {viewingEvo.ai_summary}
+                  </div>
+                </div>
+              )}
+              <div className="pt-4 border-t flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingEvo(viewingEvo)
+                    setViewingEvo(null)
+                    setEvoFormOpen(true)
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-2" /> Editar
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
