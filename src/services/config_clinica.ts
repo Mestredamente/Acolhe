@@ -30,6 +30,8 @@ export interface ConfigClinica {
   google_calendar_name?: string
   zoom_active?: boolean
   zoom_auto_link?: boolean
+  whatsapp_phone?: string
+  whatsapp_connected?: boolean
 }
 
 export const getConfig = async (userId: string): Promise<ConfigClinica | null> => {

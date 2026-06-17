@@ -91,6 +91,7 @@ const schema = z.object({
   google_calendar_name: z.string().optional(),
   zoom_active: z.boolean().optional(),
   zoom_auto_link: z.boolean().optional(),
+  whatsapp_phone: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -520,9 +521,27 @@ export default function Configuracoes() {
 
                       <FormField
                         control={form.control}
+                        name="whatsapp_phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Número do WhatsApp da Clínica</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="+55 (11) 99999-9999"
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormDescription>Usado nas automações de mensagens.</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="google_calendar_active"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
                             <div className="space-y-0.5 pr-4">
                               <FormLabel className="text-base">
                                 Integração Google Calendar

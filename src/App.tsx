@@ -12,6 +12,7 @@ import Financeiro from './pages/financeiro/Index'
 import Faturamento from './pages/faturamento/Index'
 import Configuracoes from './pages/configuracoes/Index'
 import RelatoriosList from './pages/relatorios/Index'
+import AutomacoesList from './pages/automacoes/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/faturamento" element={<Faturamento />} />
               <Route path="/relatorios" element={<RelatoriosList />} />
+              <Route path="/automacoes" element={<AutomacoesList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
           </Route>

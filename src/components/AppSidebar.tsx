@@ -10,6 +10,7 @@ import {
   MessageSquare,
   BarChart3,
   Receipt,
+  Bot,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -52,6 +53,7 @@ export function AppSidebar() {
     { name: 'Financeiro', href: '/financeiro', icon: DollarSign, hidden: isSecretaria },
     { name: 'Faturamento', href: '/faturamento', icon: Receipt, hidden: isSecretaria },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, hidden: isSecretaria },
+    { name: 'Automações', href: '/automacoes', icon: Bot, hidden: isSecretaria },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ].filter((item) => !item.hidden)
 
