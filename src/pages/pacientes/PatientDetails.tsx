@@ -77,12 +77,10 @@ export default function PatientDetails() {
     try {
       setPatient(await getPatient(id))
       setAppointments(
-        await pb
-          .collection<Appointment>('appointments')
-          .getFullList({
-            filter: `patient_id = '${id}'`,
-            sort: '-appointment_date,-start_time,-time',
-          }),
+        await pb.collection<Appointment>('appointments').getFullList({
+          filter: `patient_id = '${id}'`,
+          sort: '-appointment_date,-start_time,-time',
+        }),
       )
       setEvolucoes(await getEvolucoes(id))
     } catch (e) {

@@ -108,9 +108,18 @@ export function EvolutionFormDialog({
     setLoading(true)
     try {
       const apt = appointments.find((a) => a.id === appointmentId)
-      const dateStr = apt?.appointment_date
-        ? `${apt.appointment_date} 12:00:00.000Z`
-        : apt?.time || new Date().toISOString()
+
+      let dateStr = new Date().toISOString()
+      const sourceDate = apt?.appointment_date || apt?.time
+      if (sourceDate) {
+        const normalizedDate = sourceDate.replace(' ', 'T')
+        const d = new Date(normalizedDate)
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toISOString()
+        } else if (typeof sourceDate === 'string' && sourceDate.length >= 10) {
+          dateStr = `${sourceDate.substring(0, 10)}T12:00:00.000Z`
+        }
+      }
 
       const data = {
         patient_id: patientId,
@@ -161,13 +170,15 @@ export function EvolutionFormDialog({
               </SelectTrigger>
               <SelectContent>
                 {appointments.map((apt) => {
-                  const d = apt.appointment_date
-                    ? new Date(apt.appointment_date)
-                    : new Date(apt.time || '')
+                  const sourceDate = apt.appointment_date || apt.time || ''
+                  const d = new Date(sourceDate.replace(' ', 'T'))
+                  const dateString = !isNaN(d.getTime())
+                    ? d.toLocaleDateString('pt-BR')
+                    : 'Data inválida'
                   return (
                     <SelectItem key={apt.id} value={apt.id}>
-                      {d.toLocaleDateString('pt-BR')} - {apt.type}{' '}
-                      {apt.start_time ? `às ${apt.start_time}` : ''}
+                      {dateString !== 'Data inválida' ? `${dateString} - ` : ''}
+                      {apt.type} {apt.start_time ? `às ${apt.start_time}` : ''}
                     </SelectItem>
                   )
                 })}
