@@ -12,6 +12,13 @@ import Financeiro from './pages/financeiro/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { PortalLogin } from './pages/portal/Login'
+import { PortalDashboard } from './pages/portal/Dashboard'
+import { PortalDiario } from './pages/portal/Diario'
+import { PortalTarefas } from './pages/portal/Tarefas'
+import { PortalDocumentos } from './pages/portal/Documentos'
+import { PortalLayout } from './components/portal/PortalLayout'
+import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
 
 const App = () => (
   <AuthProvider>
@@ -21,6 +28,16 @@ const App = () => (
         <Sonner />
         <Routes>
           <Route path="/login" element={<Login />} />
+
+          <Route path="/portal/login" element={<PortalLogin />} />
+          <Route element={<PortalProtectedRoute />}>
+            <Route element={<PortalLayout />}>
+              <Route path="/portal" element={<PortalDashboard />} />
+              <Route path="/portal/diario" element={<PortalDiario />} />
+              <Route path="/portal/tarefas" element={<PortalTarefas />} />
+              <Route path="/portal/documentos" element={<PortalDocumentos />} />
+            </Route>
+          </Route>
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
