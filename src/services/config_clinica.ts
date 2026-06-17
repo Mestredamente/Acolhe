@@ -10,6 +10,7 @@ export interface ConfigClinica {
   telefone_ddi?: string
   email_contato?: string
   logo?: string
+  assinatura_padrao?: string
   cor_primaria?: string
   tempo_sessao_minutos?: number
   valor_consulta_padrao?: number
@@ -47,7 +48,7 @@ export const getConfig = async (userId: string): Promise<ConfigClinica | null> =
 
 export const saveConfig = async (
   userId: string,
-  data: Partial<ConfigClinica>,
+  data: Partial<ConfigClinica> | FormData,
 ): Promise<ConfigClinica> => {
   const existing = await getConfig(userId)
   if (existing) {
@@ -55,8 +56,13 @@ export const saveConfig = async (
       .collection('config_clinica')
       .update(existing.id, data) as unknown as Promise<ConfigClinica>
   } else {
-    return pb
-      .collection('config_clinica')
-      .create({ ...data, user_id: userId }) as unknown as Promise<ConfigClinica>
+    let payload = data
+    if (data instanceof FormData) {
+      data.append('user_id', userId)
+      payload = data
+    } else {
+      payload = { ...data, user_id: userId }
+    }
+    return pb.collection('config_clinica').create(payload) as unknown as Promise<ConfigClinica>
   }
 }

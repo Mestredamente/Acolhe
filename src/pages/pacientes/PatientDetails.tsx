@@ -52,7 +52,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { getPatient, updatePatient, deletePatient, Patient } from '@/services/patients'
 import { Appointment } from '@/services/appointments'
-import { Evolucao, getEvolucoes, deleteEvolucao } from '@/services/evolucoes'
+import { Evolucao, getEvolucoes, deleteEvolucao, updateEvolucao } from '@/services/evolucoes'
 import { Transaction, getTransactionsByPatient } from '@/services/financeiro'
 import { PatientForm } from '@/components/PatientForm'
 import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
@@ -69,6 +69,10 @@ import {
   deleteDocumento,
   createDocumento,
 } from '@/services/documentos'
+import { Assinatura, getAssinaturasByPatient, createAssinatura } from '@/services/assinaturas'
+import { SignatureDialog } from '@/components/SignatureDialog'
+import { BadgeCheck, AlertTriangle } from 'lucide-react'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -94,10 +98,23 @@ export default function PatientDetails() {
   const [docFormOpen, setDocFormOpen] = useState(false)
   const [editingDoc, setEditingDoc] = useState<Documento | null>(null)
 
+  const [assinaturas, setAssinaturas] = useState<Assinatura[]>([])
+  const [config, setConfig] = useState<ConfigClinica | null>(null)
+  const [signModalOpen, setSignModalOpen] = useState(false)
+  const [signTarget, setSignTarget] = useState<{
+    type: 'evolucao' | 'documento'
+    id: string
+  } | null>(null)
+
   const loadData = async () => {
     if (!id) return
     try {
       setPatient(await getPatient(id))
+      const userId = pb.authStore.record?.id
+      if (userId) {
+        setConfig(await getConfig(userId))
+      }
+      setAssinaturas(await getAssinaturasByPatient(id))
       setAppointments(
         await pb.collection<Appointment>('appointments').getFullList({
           filter: `patient_id = '${id}'`,
@@ -131,6 +148,10 @@ export default function PatientDetails() {
   })
 
   useRealtime('documentos', (e) => {
+    if (e.record.patient_id === id) loadData()
+  })
+
+  useRealtime('assinaturas', (e) => {
     if (e.record.patient_id === id) loadData()
   })
 
@@ -214,6 +235,36 @@ export default function PatientDetails() {
       toast({
         title: 'Erro',
         description: 'Não foi possível remover o documento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleSignRequest = (type: 'evolucao' | 'documento', recordId: string) => {
+    setSignTarget({ type, id: recordId })
+    setSignModalOpen(true)
+  }
+
+  const handleSignatureConfirm = async (signatureData: string) => {
+    if (!signTarget || !patient) return
+    try {
+      await createAssinatura({
+        registro_id: signTarget.id,
+        tipo_registro: signTarget.type,
+        patient_id: patient.id,
+        identificador_signatario: pb.authStore.record?.name || 'Psicólogo',
+        signature_data: signatureData,
+      })
+      if (signTarget.type === 'evolucao') {
+        await updateEvolucao(signTarget.id, { is_signed: true })
+      }
+      toast({ title: 'Sucesso', description: 'Assinatura registrada com sucesso.' })
+      setSignModalOpen(false)
+      loadData()
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível registrar a assinatura.',
         variant: 'destructive',
       })
     }
@@ -522,15 +573,34 @@ export default function PatientDetails() {
                     </TableCell>
                     <TableCell>
                       {evo.is_signed ? (
-                        <Badge variant="default" className="bg-teal-600">
-                          Assinado
+                        <Badge
+                          variant="default"
+                          className="bg-teal-600 flex w-fit items-center gap-1"
+                        >
+                          <BadgeCheck className="w-3 h-3" /> Assinado
                         </Badge>
                       ) : (
-                        <Badge variant="secondary">Pendente</Badge>
+                        <Badge
+                          variant="secondary"
+                          className="flex w-fit items-center gap-1 text-slate-500"
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Pendente
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {!evo.is_signed ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-teal-700 border-teal-200 hover:bg-teal-50"
+                          onClick={() => handleSignRequest('evolucao', evo.id)}
+                        >
+                          Assinar
+                        </Button>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -571,18 +641,31 @@ export default function PatientDetails() {
                         {evo.is_signed ? (
                           <Badge
                             variant="outline"
-                            className="text-teal-600 border-teal-600 ml-2 hidden sm:inline-flex"
+                            className="text-teal-600 border-teal-600 ml-2 hidden sm:inline-flex items-center gap-1"
                           >
-                            Assinada
+                            <BadgeCheck className="w-3 h-3" /> Assinada
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="ml-2 hidden sm:inline-flex">
-                            Pendente
+                          <Badge
+                            variant="secondary"
+                            className="ml-2 hidden sm:inline-flex items-center gap-1 text-slate-500"
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Pendente
                           </Badge>
                         )}
                       </CardTitle>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 items-center">
+                      {!evo.is_signed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-teal-700 border-teal-200 hover:bg-teal-50"
+                          onClick={() => handleSignRequest('evolucao', evo.id)}
+                        >
+                          Assinar
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -668,61 +751,89 @@ export default function PatientDetails() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {documentos.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      {doc.file_name}
-                      {doc.status === 'privado' && (
-                        <Lock className="h-3 w-3 text-muted-foreground ml-1" />
-                      )}
-                    </TableCell>
-                    <TableCell className="capitalize">{doc.doc_type.replace(/_/g, ' ')}</TableCell>
-                    <TableCell>{new Date(doc.created).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          doc.status === 'visivel_paciente'
-                            ? 'default'
-                            : doc.status === 'pendente_assinatura'
-                              ? 'outline'
-                              : 'secondary'
-                        }
-                        className={
-                          doc.status === 'visivel_paciente'
-                            ? 'bg-teal-600'
-                            : doc.status === 'pendente_assinatura'
-                              ? 'text-amber-600 border-amber-600'
-                              : ''
-                        }
-                      >
-                        {doc.status.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingDoc(doc)
-                            setDocFormOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteDoc(doc.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {documentos.map((doc) => {
+                  const isSignable =
+                    doc.doc_type === 'termo_consentimento_lgpd' || doc.doc_type === 'contrato'
+                  const hasSignature = assinaturas.some(
+                    (a) => a.tipo_registro === 'documento' && a.registro_id === doc.id,
+                  )
+                  return (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        {doc.file_name}
+                        {doc.status === 'privado' && (
+                          <Lock className="h-3 w-3 text-muted-foreground ml-1" />
+                        )}
+                      </TableCell>
+                      <TableCell className="capitalize">
+                        {doc.doc_type.replace(/_/g, ' ')}
+                      </TableCell>
+                      <TableCell>{new Date(doc.created).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        {hasSignature ? (
+                          <Badge
+                            variant="default"
+                            className="bg-teal-600 flex w-fit items-center gap-1"
+                          >
+                            <BadgeCheck className="w-3 h-3" /> Assinado
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={
+                              doc.status === 'visivel_paciente'
+                                ? 'default'
+                                : doc.status === 'pendente_assinatura'
+                                  ? 'outline'
+                                  : 'secondary'
+                            }
+                            className={
+                              doc.status === 'visivel_paciente'
+                                ? 'bg-teal-600'
+                                : doc.status === 'pendente_assinatura'
+                                  ? 'text-amber-600 border-amber-600'
+                                  : ''
+                            }
+                          >
+                            {doc.status.replace(/_/g, ' ')}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 justify-end">
+                          {isSignable && !hasSignature && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-teal-700 border-teal-200 hover:bg-teal-50"
+                              onClick={() => handleSignRequest('documento', doc.id)}
+                            >
+                              Assinar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingDoc(doc)
+                              setDocFormOpen(true)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteDoc(doc.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
                 {documentos.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
@@ -965,6 +1076,15 @@ export default function PatientDetails() {
         documento={editingDoc}
         patientId={patient.id}
         onSaved={loadData}
+      />
+
+      <SignatureDialog
+        open={signModalOpen}
+        onOpenChange={setSignModalOpen}
+        onConfirm={handleSignatureConfirm}
+        defaultSignature={
+          config?.assinatura_padrao ? pb.files.getURL(config, config.assinatura_padrao) : undefined
+        }
       />
     </div>
   )

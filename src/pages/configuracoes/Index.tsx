@@ -101,6 +101,7 @@ export default function Configuracoes() {
   const [loading, setLoading] = useState(true)
   const [openGoogle, setOpenGoogle] = useState(false)
   const [openZoom, setOpenZoom] = useState(false)
+  const [signatureFile, setSignatureFile] = useState<File | null>(null)
 
   const { user } = useAuth()
   const form = useForm<FormData>({
@@ -128,7 +129,19 @@ export default function Configuracoes() {
     try {
       const userId = pb.authStore.record?.id
       if (!userId) return
-      await saveConfig(userId, data)
+
+      const payload = new window.FormData()
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) payload.append(key, JSON.stringify(value))
+          else payload.append(key, String(value))
+        }
+      })
+      if (signatureFile) {
+        payload.append('assinatura_padrao', signatureFile)
+      }
+
+      await saveConfig(userId, payload)
       toast({
         title: 'Configurações salvas',
         description: 'Suas preferências foram atualizadas com sucesso.',
@@ -403,6 +416,28 @@ export default function Configuracoes() {
                         </FormItem>
                       )}
                     />
+                    <div className="md:col-span-2">
+                      <FormItem>
+                        <FormLabel>Assinatura Manuscrita Padrão</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                setSignatureFile(e.target.files[0])
+                              } else {
+                                setSignatureFile(null)
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Faça upload de uma imagem da sua assinatura. Ela será usada para preencher
+                          a tela de assinatura digital.
+                        </FormDescription>
+                      </FormItem>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
