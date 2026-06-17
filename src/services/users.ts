@@ -6,6 +6,7 @@ export interface User {
   name: string
   profile: 'admin' | 'psicologo' | 'secretaria' | 'paciente'
   status: 'ativo' | 'inativo'
+  onboarding_completo?: boolean
   created: string
 }
 

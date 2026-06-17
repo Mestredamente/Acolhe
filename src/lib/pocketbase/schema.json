@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T05:45:56.533Z",
+  "generatedAt": "2026-06-17T06:03:24.188Z",
   "collections": [
     {
       "name": "users",
@@ -51,6 +51,12 @@
           "required": false,
           "system": false,
           "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "onboarding_completo",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

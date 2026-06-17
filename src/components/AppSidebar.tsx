@@ -12,6 +12,7 @@ import {
   Receipt,
   Bot,
   Activity,
+  PlayCircle,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -48,6 +49,7 @@ export function AppSidebar() {
       icon: LayoutDashboard,
     },
     { name: 'Insights Clínicos', href: '/insights', icon: Activity, hidden: isSecretaria },
+    { name: 'Controle de Jornada', href: '/jornada', icon: PlayCircle, hidden: isSecretaria },
     { name: 'Mensagens', href: '/mensagens', icon: MessageSquare, hidden: isSecretaria },
     { name: 'Pacientes', href: '/pacientes', icon: Users },
     { name: 'Agenda', href: '/agenda', icon: Calendar },
