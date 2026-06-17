@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertCircle, Send, Calculator } from 'lucide-react'
+import { AlertCircle, Send, Calculator, Mail, CheckCircle2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,24 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { getPatients, Patient } from '@/services/patients'
+import { getTransactions, Transaction } from '@/services/financeiro'
+import {
+  getEnviosDocumentos,
+  createEnvioDocumento,
+  EnvioDocumento,
+} from '@/services/envios_documentos'
+import { EmailComposerDialog } from './EmailComposerDialog'
+import pb from '@/lib/pocketbase/client'
+import { getConfig, ConfigClinica } from '@/services/config_clinica'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 export function NfeTab() {
   const { toast } = useToast()
@@ -29,9 +47,49 @@ export function NfeTab() {
     issRate: 5,
   })
 
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [envios, setEnvios] = useState<EnvioDocumento[]>([])
+  const [config, setConfig] = useState<ConfigClinica | null>(null)
+
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeTarget, setComposeTarget] = useState<{ type: 'nfe'; tx: Transaction } | null>(null)
+
+  const loadData = async () => {
+    try {
+      setPatientsList(await getPatients())
+      const userId = pb.authStore.record?.id
+      if (userId) setConfig(await getConfig(userId))
+      const txs = await getTransactions()
+      setTransactions(txs.filter((t) => t.status === 'pago'))
+      setEnvios(await getEnviosDocumentos())
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   useEffect(() => {
-    getPatients().then(setPatientsList).catch(console.error)
+    loadData()
   }, [])
+
+  const handleSendEmail = async (data: any) => {
+    if (!composeTarget?.tx) return
+    try {
+      await createEnvioDocumento({
+        user_id: pb.authStore.record!.id,
+        patient_id: composeTarget.tx.patient_id,
+        tipo_documento: data.documentType,
+        documento_id: data.documentId,
+        destinatario: data.email,
+        data_envio: new Date().toISOString().replace('T', ' '),
+        status: 'enviado',
+        visualizado: false,
+      })
+      toast({ title: 'Enviado', description: 'NF-e enviada com sucesso (Simulação).' })
+      loadData()
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao enviar.', variant: 'destructive' })
+    }
+  }
 
   const copyPatientData = () => {
     if (selectedPatient) {
@@ -175,6 +233,88 @@ export function NfeTab() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">NF-e Emitidas (Simulação)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Paciente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.slice(0, 5).map((t) => {
+                const envio = envios.find(
+                  (e) => e.documento_id === t.id && e.tipo_documento === 'nfe',
+                )
+                return (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      {new Date(t.payment_date || t.created).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell>{t.expand?.patient_id?.name || 'Desconhecido'}</TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(t.amount)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {envio ? (
+                        <Badge
+                          variant="outline"
+                          className="text-sky-700 border-sky-200 bg-sky-50 py-1 px-2 inline-flex items-center gap-1 h-9"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Enviado em{' '}
+                          {new Date(envio.data_envio).toLocaleDateString('pt-BR')}
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-sky-700 border-sky-200 hover:bg-sky-50"
+                          onClick={() => {
+                            setComposeTarget({ type: 'nfe', tx: t })
+                            setComposeOpen(true)
+                          }}
+                        >
+                          <Mail className="h-3 w-3 mr-1" /> Enviar por E-mail
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              {transactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                    Nenhuma emissão encontrada.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <EmailComposerDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        patientEmail={composeTarget?.tx.expand?.patient_id?.email || ''}
+        patientName={composeTarget?.tx.expand?.patient_id?.name || ''}
+        documentType="nfe"
+        documentId={composeTarget?.tx.id || ''}
+        amount={composeTarget?.tx.amount || 0}
+        date={composeTarget?.tx.payment_date || composeTarget?.tx.created || ''}
+        clinicName={config?.nome_clinica || ''}
+        onSend={handleSendEmail}
+      />
     </div>
   )
 }

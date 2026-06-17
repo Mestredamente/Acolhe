@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Eye, CheckCircle2 } from 'lucide-react'
+import { Plus, Eye, CheckCircle2, Mail } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -19,6 +19,13 @@ import pb from '@/lib/pocketbase/client'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { BadgeCheck, PenTool } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import {
+  getEnviosDocumentos,
+  createEnvioDocumento,
+  EnvioDocumento,
+} from '@/services/envios_documentos'
+import { EmailComposerDialog } from './EmailComposerDialog'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export function RecibosTab() {
   const { toast } = useToast()
@@ -30,6 +37,12 @@ export function RecibosTab() {
   const [config, setConfig] = useState<ConfigClinica | null>(null)
   const [signModalOpen, setSignModalOpen] = useState(false)
   const [signTarget, setSignTarget] = useState<Transaction | null>(null)
+  const [envios, setEnvios] = useState<EnvioDocumento[]>([])
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeTarget, setComposeTarget] = useState<{
+    type: 'recibo' | 'nfe'
+    tx: Transaction
+  } | null>(null)
 
   const loadData = async () => {
     try {
@@ -40,6 +53,7 @@ export function RecibosTab() {
       }
       const txs = await getTransactions()
       setTransactions(txs.filter((t) => t.receipt_number || t.status === 'pago'))
+      setEnvios(await getEnviosDocumentos())
     } catch (e) {
       console.error(e)
     }
@@ -48,6 +62,27 @@ export function RecibosTab() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useRealtime('envios_documentos', () => loadData())
+
+  const handleSendEmail = async (data: any) => {
+    if (!composeTarget?.tx) return
+    try {
+      await createEnvioDocumento({
+        user_id: pb.authStore.record!.id,
+        patient_id: composeTarget.tx.patient_id,
+        tipo_documento: data.documentType,
+        documento_id: data.documentId,
+        destinatario: data.email,
+        data_envio: new Date().toISOString().replace('T', ' '),
+        status: 'enviado',
+        visualizado: false,
+      })
+      toast({ title: 'Enviado', description: 'Documento enviado com sucesso.' })
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao enviar documento.', variant: 'destructive' })
+    }
+  }
 
   const handleSignatureConfirm = async (signatureData: string) => {
     if (!signTarget) return
@@ -130,6 +165,32 @@ export function RecibosTab() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex items-center justify-end gap-2">
+                      {(() => {
+                        const envio = envios.find(
+                          (e) => e.documento_id === t.id && e.tipo_documento === 'recibo',
+                        )
+                        return t.receipt_number && envio ? (
+                          <Badge
+                            variant="outline"
+                            className="text-sky-700 border-sky-200 bg-sky-50 py-1 px-2 flex items-center gap-1 h-9"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Enviado em{' '}
+                            {new Date(envio.data_envio).toLocaleDateString('pt-BR')}
+                          </Badge>
+                        ) : t.receipt_number ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-sky-700 border-sky-200 hover:bg-sky-50"
+                            onClick={() => {
+                              setComposeTarget({ type: 'recibo', tx: t })
+                              setComposeOpen(true)
+                            }}
+                          >
+                            <Mail className="h-3 w-3 mr-1" /> Enviar por E-mail
+                          </Button>
+                        ) : null
+                      })()}
                       {t.receipt_number && !isSigned && (
                         <Button
                           size="sm"
@@ -192,6 +253,19 @@ export function RecibosTab() {
         defaultSignature={
           config?.assinatura_padrao ? pb.files.getURL(config, config.assinatura_padrao) : undefined
         }
+      />
+
+      <EmailComposerDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        patientEmail={composeTarget?.tx.expand?.patient_id?.email || ''}
+        patientName={composeTarget?.tx.expand?.patient_id?.name || ''}
+        documentType={composeTarget?.type || 'recibo'}
+        documentId={composeTarget?.tx.id || ''}
+        amount={composeTarget?.tx.amount || 0}
+        date={composeTarget?.tx.receipt_issued_date || composeTarget?.tx.created || ''}
+        clinicName={config?.nome_clinica || ''}
+        onSend={handleSendEmail}
       />
     </div>
   )

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T06:18:52.437Z",
+  "generatedAt": "2026-06-17T06:25:18.471Z",
   "collections": [
     {
       "name": "users",
@@ -564,8 +564,8 @@
       "name": "financeiro",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && user_id = @request.auth.id",
-        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "list": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id)",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -1567,6 +1567,95 @@
       "indexes": [
         "CREATE INDEX idx_assinaturas_registro ON assinaturas (registro_id, tipo_registro)",
         "CREATE INDEX idx_assinaturas_patient ON assinaturas (patient_id)"
+      ]
+    },
+    {
+      "name": "envios_documentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || destinatario = @request.auth.email || patient_id.user_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || destinatario = @request.auth.email || patient_id.user_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && user_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "tipo_documento",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["recibo", "nfe"]
+        },
+        {
+          "name": "documento_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "destinatario",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_envio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["enviado", "falha"]
+        },
+        {
+          "name": "mensagem_erro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visualizado",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_envios_doc_id ON envios_documentos (documento_id)",
+        "CREATE INDEX idx_envios_patient ON envios_documentos (patient_id)"
       ]
     }
   ]
