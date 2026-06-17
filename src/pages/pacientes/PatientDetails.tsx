@@ -57,6 +57,7 @@ import { Transaction, getTransactionsByPatient } from '@/services/financeiro'
 import { PatientForm } from '@/components/PatientForm'
 import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
 import { FinanceiroFormDialog } from '@/components/FinanceiroFormDialog'
+import { ReceiptDialog } from '@/components/faturamento/ReceiptDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
@@ -83,6 +84,7 @@ export default function PatientDetails() {
   const [isEditing, setIsEditing] = useState(false)
   const [finFormOpen, setFinFormOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [evoFormOpen, setEvoFormOpen] = useState(false)
@@ -839,16 +841,28 @@ export default function PatientDetails() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingTransaction(t)
-                          setFinFormOpen(true)
-                        }}
-                      >
-                        Editar
-                      </Button>
+                      <div className="flex items-center gap-1 justify-end">
+                        {!t.receipt_number && ['pendente', 'pago'].includes(t.status) && (
+                          <Button variant="outline" size="sm" onClick={() => setReceiptTx(t)}>
+                            Recibo
+                          </Button>
+                        )}
+                        {t.receipt_number && (
+                          <Button variant="outline" size="sm" onClick={() => setReceiptTx(t)}>
+                            Ver Recibo
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingTransaction(t)
+                            setFinFormOpen(true)
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -936,6 +950,13 @@ export default function PatientDetails() {
         onOpenChange={setFinFormOpen}
         transaction={editingTransaction}
         defaultPatientId={patient.id}
+      />
+
+      <ReceiptDialog
+        open={!!receiptTx}
+        onOpenChange={(open) => !open && setReceiptTx(null)}
+        transaction={receiptTx}
+        onSaved={loadData}
       />
 
       <DocumentoFormDialog

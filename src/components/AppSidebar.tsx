@@ -9,6 +9,7 @@ import {
   BrainCircuit,
   MessageSquare,
   BarChart3,
+  Receipt,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -49,6 +50,7 @@ export function AppSidebar() {
     { name: 'Agenda', href: '/agenda', icon: Calendar },
     { name: 'Prontuários', href: '/prontuarios', icon: FileText, hidden: isSecretaria },
     { name: 'Financeiro', href: '/financeiro', icon: DollarSign, hidden: isSecretaria },
+    { name: 'Faturamento', href: '/faturamento', icon: Receipt, hidden: isSecretaria },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, hidden: isSecretaria },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ].filter((item) => !item.hidden)

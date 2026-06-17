@@ -22,6 +22,8 @@ export interface Transaction {
     | ''
   installments?: number
   observations?: string
+  receipt_number?: string
+  receipt_issued_date?: string
   created: string
   updated: string
   expand?: {
