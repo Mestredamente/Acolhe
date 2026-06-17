@@ -24,6 +24,12 @@ export interface ConfigClinica {
   texto_apresentacao?: string
   metodo_pagamento_preferencial?: string
   texto_recibo_padrao?: string
+  google_calendar_active?: boolean
+  google_calendar_email?: string
+  google_calendar_sync_mode?: 'to_google' | 'from_google' | 'bidirectional'
+  google_calendar_name?: string
+  zoom_active?: boolean
+  zoom_auto_link?: boolean
 }
 
 export const getConfig = async (userId: string): Promise<ConfigClinica | null> => {

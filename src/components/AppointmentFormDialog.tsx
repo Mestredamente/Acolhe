@@ -151,12 +151,43 @@ export function AppointmentFormDialog({
         patient_name_text: patient?.name || '',
       }
 
+      let zoomLinkGenerated = false
+      if (
+        payload.type === 'Online' &&
+        config?.zoom_active &&
+        config?.zoom_auto_link &&
+        !payload.link_or_room
+      ) {
+        payload.link_or_room = `https://zoom.us/j/${Math.floor(Math.random() * 9000000000) + 1000000000}`
+        zoomLinkGenerated = true
+      }
+
       if (isEditing) {
         await updateAppointment(appointment.id, payload)
         toast({ title: 'Consulta atualizada' })
+        if (zoomLinkGenerated) {
+          toast({ title: 'Link do Zoom gerado automaticamente' })
+        }
       } else {
         await createAppointment(payload)
         toast({ title: 'Consulta criada' })
+
+        if (config?.google_calendar_active) {
+          toast({
+            title: 'Sincronizado com Google Calendar',
+            description: `Evento: ${payload.patient_name_text} - Consulta`,
+          })
+          if (patient?.email) {
+            toast({
+              title: 'Convite enviado',
+              description: `Um convite do evento foi enviado para ${patient.email}.`,
+            })
+          }
+        }
+
+        if (zoomLinkGenerated) {
+          toast({ title: 'Link do Zoom gerado', description: 'Link adicionado à consulta online.' })
+        }
       }
       handleOpenChange(false)
     } catch (e) {

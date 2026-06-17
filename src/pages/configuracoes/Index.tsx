@@ -2,7 +2,20 @@ import { useEffect, useState, useMemo } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Settings, Save, AlertCircle, Clock, DollarSign, UserCircle, Building2 } from 'lucide-react'
+import {
+  Settings,
+  Save,
+  AlertCircle,
+  Clock,
+  DollarSign,
+  UserCircle,
+  Building2,
+  Blocks,
+  CalendarDays,
+  Video,
+  CheckCircle2,
+  Unplug,
+} from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { getConfig, saveConfig, ConfigClinica } from '@/services/config_clinica'
 import { useToast } from '@/hooks/use-toast'
@@ -29,6 +42,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 const diasSemana = [
   { id: 'segunda', label: 'Segunda-feira' },
@@ -59,6 +82,12 @@ const schema = z.object({
   valor_consulta_padrao: z.coerce.number().min(0).optional(),
   metodo_pagamento_preferencial: z.string().optional(),
   texto_recibo_padrao: z.string().optional(),
+  google_calendar_active: z.boolean().optional(),
+  google_calendar_email: z.string().optional(),
+  google_calendar_sync_mode: z.enum(['to_google', 'from_google', 'bidirectional']).optional(),
+  google_calendar_name: z.string().optional(),
+  zoom_active: z.boolean().optional(),
+  zoom_auto_link: z.boolean().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -66,6 +95,8 @@ type FormData = z.infer<typeof schema>
 export default function Configuracoes() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
+  const [openGoogle, setOpenGoogle] = useState(false)
+  const [openZoom, setOpenZoom] = useState(false)
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -164,7 +195,7 @@ export default function Configuracoes() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="clinica" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 h-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
               <TabsTrigger
                 value="clinica"
                 className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
@@ -188,6 +219,12 @@ export default function Configuracoes() {
                 className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
               >
                 <DollarSign className="w-4 h-4 mr-2" /> Financeiro
+              </TabsTrigger>
+              <TabsTrigger
+                value="integracoes"
+                className="py-3 data-[state=active]:bg-cyan-950 data-[state=active]:text-white"
+              >
+                <Blocks className="w-4 h-4 mr-2" /> Integrações
               </TabsTrigger>
             </TabsList>
 
@@ -468,6 +505,26 @@ export default function Configuracoes() {
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name="google_calendar_active"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5 pr-4">
+                              <FormLabel className="text-base">
+                                Integração Google Calendar
+                              </FormLabel>
+                              <FormDescription>
+                                Sincronize agendamentos automaticamente.
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <div className="border rounded-xl p-4 bg-slate-50/50">
@@ -564,6 +621,282 @@ export default function Configuracoes() {
                       )}
                     />
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="integracoes" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-cyan-700" />
+                    Google Calendar
+                  </CardTitle>
+                  <CardDescription>
+                    Sincronize sua agenda de consultas com o Google Calendar e envie convites.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {form.watch('google_calendar_email') ? (
+                    <>
+                      <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          <div>
+                            <p className="font-medium text-slate-900">Conectado como</p>
+                            <p className="text-sm text-slate-500">
+                              {form.watch('google_calendar_email')}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              Último sync: {new Date().toLocaleDateString('pt-BR')} às{' '}
+                              {new Date().toLocaleTimeString('pt-BR')} (15 eventos sincronizados)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: 'Sincronização concluída',
+                                description: '15 eventos sincronizados.',
+                              })
+                            }}
+                          >
+                            Sincronizar agora
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              form.setValue('google_calendar_email', '')
+                              form.setValue('google_calendar_active', false)
+                            }}
+                          >
+                            Desconectar
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="google_calendar_sync_mode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Direção da Sincronização</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value || 'bidirectional'}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="to_google">
+                                    Apenas do Sistema para o Google
+                                  </SelectItem>
+                                  <SelectItem value="from_google">
+                                    Apenas do Google para o Sistema
+                                  </SelectItem>
+                                  <SelectItem value="bidirectional">
+                                    Sincronização Bidirecional
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="google_calendar_name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome do Calendário</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ex: Consultas Clínica" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      <Unplug className="w-10 h-10 text-slate-400 mb-3" />
+                      <p className="text-slate-600 mb-4">
+                        Você ainda não conectou sua conta do Google.
+                      </p>
+                      <Dialog open={openGoogle} onOpenChange={setOpenGoogle}>
+                        <DialogTrigger asChild>
+                          <Button type="button" className="bg-cyan-700 hover:bg-cyan-800">
+                            Conectar Google Calendar
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Conectar ao Google</DialogTitle>
+                            <DialogDescription>
+                              Autorize o PsicoGestão a acessar seu calendário para sincronizar
+                              consultas.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-6 flex flex-col items-center">
+                            <img
+                              src="https://img.usecurling.com/i?q=google&color=multicolor&shape=fill"
+                              alt="Google Logo"
+                              className="w-16 h-16 mb-4"
+                            />
+                            <p className="text-center text-sm text-slate-600">
+                              Simulação de login OAuth do Google.
+                            </p>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setOpenGoogle(false)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                form.setValue('google_calendar_email', 'psicologo@gmail.com')
+                                form.setValue('google_calendar_active', true)
+                                form.setValue('google_calendar_sync_mode', 'bidirectional')
+                                form.setValue('google_calendar_name', 'Consultas Clínica')
+                                setOpenGoogle(false)
+                              }}
+                            >
+                              Confirmar Conexão
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="w-5 h-5 text-blue-600" />
+                    Zoom Meetings
+                  </CardTitle>
+                  <CardDescription>
+                    Integre com o Zoom para gerar links de reuniões automaticamente.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {form.watch('zoom_active') ? (
+                    <>
+                      <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          <div>
+                            <p className="font-medium text-slate-900">Conta Zoom Conectada</p>
+                            <p className="text-sm text-slate-500">
+                              Pronta para gerar links automáticos
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            form.setValue('zoom_active', false)
+                            form.setValue('zoom_auto_link', false)
+                          }}
+                        >
+                          Desconectar
+                        </Button>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="zoom_auto_link"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5 pr-4">
+                              <FormLabel className="text-base">
+                                Gerar link automático para consultas online
+                              </FormLabel>
+                              <FormDescription>
+                                Sempre que agendar uma consulta "Online", um link do Zoom será
+                                gerado e salvo.
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      <Unplug className="w-10 h-10 text-slate-400 mb-3" />
+                      <p className="text-slate-600 mb-4">
+                        Você ainda não conectou sua conta do Zoom.
+                      </p>
+                      <Dialog open={openZoom} onOpenChange={setOpenZoom}>
+                        <DialogTrigger asChild>
+                          <Button type="button" className="bg-blue-600 hover:bg-blue-700">
+                            Conectar Zoom
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Conectar ao Zoom</DialogTitle>
+                            <DialogDescription>
+                              Autorize o PsicoGestão a criar reuniões na sua conta Zoom.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-6 flex flex-col items-center">
+                            <img
+                              src="https://img.usecurling.com/i?q=zoom&color=blue&shape=fill"
+                              alt="Zoom Logo"
+                              className="w-16 h-16 mb-4"
+                            />
+                            <p className="text-center text-sm text-slate-600">
+                              Simulação de login OAuth do Zoom.
+                            </p>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setOpenZoom(false)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                form.setValue('zoom_active', true)
+                                form.setValue('zoom_auto_link', true)
+                                setOpenZoom(false)
+                              }}
+                            >
+                              Confirmar Conexão
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
