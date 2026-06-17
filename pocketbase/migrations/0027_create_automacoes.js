@@ -66,7 +66,7 @@ migrate(
           name: 'patient_id',
           type: 'relation',
           required: true,
-          collectionId: 'patients',
+          collectionId: app.findCollectionByNameOrId('patients').id,
           maxSelect: 1,
         },
         {
