@@ -20,6 +20,12 @@ export function Login() {
   const [simulatedCode, setSimulatedCode] = useState('')
 
   useEffect(() => {
+    sessionStorage.removeItem('impersonated_user')
+    sessionStorage.removeItem('impersonated_patient')
+    sessionStorage.removeItem('impersonation_id')
+  }, [])
+
+  useEffect(() => {
     if (isAuthenticated && !is2FAVerified && step === 'login') {
       setStep('2fa')
       const generateCode = async () => {
@@ -49,7 +55,7 @@ export function Login() {
     if (error) {
       toast({
         title: 'Erro ao entrar',
-        description: 'Verifique suas credenciais ou se o usuário está ativo.',
+        description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
         variant: 'destructive',
       })
       setLoading(false)
@@ -59,7 +65,11 @@ export function Login() {
     const user = pb.authStore.record
     if (user?.status === 'inativo') {
       signOut()
-      toast({ title: 'Acesso negado', description: 'Usuário inativo.', variant: 'destructive' })
+      toast({
+        title: 'Acesso negado',
+        description: 'Usuário inativo. Por favor, entre em contato com o administrador.',
+        variant: 'destructive',
+      })
       setLoading(false)
       return
     }

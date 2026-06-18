@@ -84,12 +84,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return originalSend(path, options)
     }
 
+    const clearImpersonation = () => {
+      sessionStorage.removeItem('impersonated_user')
+      sessionStorage.removeItem('impersonated_patient')
+      sessionStorage.removeItem('impersonation_id')
+      setImpersonatedUser(null)
+      setImpersonatedPatient(null)
+    }
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       setUser(pb.authStore.isValid ? record : null)
       setIsAuthenticated(pb.authStore.isValid)
       if (!pb.authStore.isValid) {
         setIs2FAVerified(false)
         sessionStorage.removeItem('2fa_verified')
+        clearImpersonation()
       }
     })
 
@@ -108,10 +117,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pb.authStore.clear()
           setIs2FAVerified(false)
           sessionStorage.removeItem('2fa_verified')
+          clearImpersonation()
         })
         .finally(() => setLoading(false))
     } else {
       if (pb.authStore.record) pb.authStore.clear()
+      clearImpersonation()
       setLoading(false)
     }
     return () => {
