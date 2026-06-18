@@ -5,8 +5,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { getDiarioEntries, createDiarioEntry, type DiarioEntry } from '@/services/diario'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Smile, Meh, Frown, Wind, Angry, Sparkles } from 'lucide-react'
+import { Smile, Meh, Frown, Wind, Angry, Sparkles, Mic, Loader2, Wand2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePatientContext } from '@/components/portal/PortalProtectedRoute'
 import { SentimentAnalysis } from '@/components/SentimentAnalysis'
 
@@ -62,6 +63,38 @@ export function PortalDiario() {
   const [content, setContent] = useState('')
   const [sentiment, setSentiment] = useState<DiarioEntry['sentiment']>('feliz')
   const [loading, setLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [hasAudio, setHasAudio] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+
+  const handleSimulateRecording = () => {
+    setIsRecording(true)
+    setTimeout(() => {
+      setIsRecording(false)
+      setHasAudio(true)
+      toast({
+        title: 'Gravação concluída',
+        description: 'Áudio gravado com sucesso. Você pode transcrevê-lo agora.',
+      })
+    }, 2000)
+  }
+
+  const handleSimulateTranscription = () => {
+    setIsTranscribing(true)
+    setTimeout(() => {
+      setContent(
+        (prev) =>
+          prev +
+          (prev ? '\n\n' : '') +
+          '[Transcrição automática]: Hoje me senti muito bem após a sessão, consegui aplicar as técnicas de respiração e me sinto mais calmo para enfrentar a semana.',
+      )
+      setIsTranscribing(false)
+      toast({
+        title: 'Transcrição concluída',
+        description: 'O texto foi adicionado à sua reflexão.',
+      })
+    }, 2500)
+  }
 
   const focusInput = () => {
     const textarea = document.getElementById('diario-textarea')
@@ -87,6 +120,7 @@ export function PortalDiario() {
       })
       setEntries([newEntry, ...entries])
       setContent('')
+      setHasAudio(false)
       toast({ title: 'Entrada salva!', description: 'Seu registro foi guardado com segurança.' })
     } catch (err) {
       toast({ title: 'Erro', description: 'Não foi possível salvar.', variant: 'destructive' })
@@ -136,13 +170,82 @@ export function PortalDiario() {
             </div>
           </div>
 
-          <Textarea
-            id="diario-textarea"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Escreva livremente sobre seus pensamentos, sentimentos ou acontecimentos do dia..."
-            className="min-h-[160px] border-emerald-200 focus-visible:ring-emerald-500 resize-none text-base p-5 rounded-xl bg-slate-50/50"
-          />
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSimulateRecording}
+                disabled={isRecording || isTranscribing}
+                className={`rounded-full shadow-sm transition-all ${
+                  isRecording
+                    ? 'text-emerald-600 animate-pulse border-emerald-600 bg-emerald-50'
+                    : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                }`}
+              >
+                {isRecording ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mic className="h-4 w-4 mr-2" />
+                )}
+                {isRecording ? 'Gravando...' : 'Gravar Áudio'}
+              </Button>
+
+              {hasAudio ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSimulateTranscription}
+                  disabled={isTranscribing || isRecording}
+                  className="rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200 shadow-sm transition-all"
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-2" />
+                  )}
+                  {isTranscribing
+                    ? 'Convertendo áudio para texto... Aguarde'
+                    : 'Transcrever Gravação'}
+                </Button>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled
+                          className="rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200 shadow-sm disabled:opacity-50 transition-all"
+                        >
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          Transcrever Gravação
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-emerald-800 text-white border-none">
+                      <p>Gravar áudio primeiro para transcrever</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+
+            <Textarea
+              id="diario-textarea"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Escreva livremente sobre seus pensamentos, sentimentos ou acontecimentos do dia..."
+              className="min-h-[160px] border-emerald-200 focus-visible:ring-emerald-500 resize-none text-base p-5 rounded-xl bg-slate-50/50"
+            />
+            <p className="text-xs text-emerald-600/80 px-2 font-medium">
+              A transcrição é automatizada. Por favor, revise o conteúdo gerado antes de salvar.
+            </p>
+          </div>
 
           <div className="flex justify-end pt-2">
             <Button
