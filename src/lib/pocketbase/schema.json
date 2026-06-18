@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T04:55:26.456Z",
+  "generatedAt": "2026-06-18T05:01:14.226Z",
   "collections": [
     {
       "name": "users",
@@ -2882,6 +2882,80 @@
         },
         {
           "name": "deleted_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "visualizacoes_impersonate",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.profile = 'admin' || usuario_admin_id = @request.auth.id",
+        "view": "@request.auth.profile = 'admin' || usuario_admin_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_admin_id = @request.auth.id",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_admin_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "perfil_visualizado",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["admin", "clinica_owner", "psicologo", "secretaria", "paciente"]
+        },
+        {
+          "name": "clinica_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clinicas"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "dados_ficticios",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_fim",
           "type": "date",
           "required": false,
           "system": false

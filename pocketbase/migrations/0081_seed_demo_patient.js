@@ -31,10 +31,25 @@ migrate(
     patient.set('user_id', adminUserId)
     app.save(patient)
 
+    const appointmentsCol = app.findCollectionByNameOrId('appointments')
+    const appt = new Record(appointmentsCol)
+    appt.set('id', 'dummyappt123456')
+    appt.set('user_id', adminUserId)
+    appt.set('patient_id', patient.id)
+    appt.set('time', new Date().toISOString().replace('T', ' '))
+    appt.set('type', 'Online')
+    appt.set('appointment_date', new Date().toISOString().replace('T', ' '))
+    appt.set('start_time', '14:00')
+    appt.set('end_time', '15:00')
+    appt.set('status', 'concluida')
+    appt.set('tipo_sessao', 'individual')
+    app.save(appt)
+
     const evolucoesCol = app.findCollectionByNameOrId('evolucoes')
     const evol = new Record(evolucoesCol)
     evol.set('id', 'dummyevol123456')
     evol.set('patient_id', patient.id)
+    evol.set('appointment_id', appt.id)
     evol.set('user_id', adminUserId)
     evol.set('session_date', new Date().toISOString().replace('T', ' '))
     evol.set('content', 'Paciente relatou melhora na ansiedade. Discutimos técnicas de respiração.')
@@ -55,6 +70,10 @@ migrate(
     try {
       const p = app.findFirstRecordByData('patients', 'id', 'dummypatient123')
       app.delete(p)
+    } catch (_) {}
+    try {
+      const a = app.findFirstRecordByData('appointments', 'id', 'dummyappt123456')
+      app.delete(a)
     } catch (_) {}
     try {
       const e = app.findFirstRecordByData('evolucoes', 'id', 'dummyevol123456')
