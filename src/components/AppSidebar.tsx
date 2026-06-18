@@ -10,10 +10,8 @@ import {
   MessageSquare,
   Shield,
   LifeBuoy,
-  Server,
   Building2,
-  Activity,
-  GraduationCap,
+  User,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -36,28 +34,12 @@ export function AppSidebar() {
   const isSecretaria = profile === 'secretaria'
   const isAdmin = profile === 'admin'
   const isPaciente = profile === 'paciente'
-  const isSupervisor = user?.is_supervisor === true
 
-  // Dashboard, Pacientes, Agenda, Prontuários, Financeiro, Configurações, Suporte.
-  // Admin: All + Gestão de Usuários
-  // Secretaria: Dashboard, Agenda, Pacientes, Configurações
   const baseNav = [
     {
-      name: 'Dashboard Gestor',
-      href: '/admin/dashboard',
-      icon: Activity,
-      roles: ['admin'],
-    },
-    {
       name: 'Dashboard',
-      href: isSecretaria ? '/secretaria/dashboard' : '/',
+      href: isAdmin ? '/admin/dashboard' : isSecretaria ? '/secretaria/dashboard' : '/',
       icon: LayoutDashboard,
-      roles: ['psicologo', 'admin', 'secretaria'],
-    },
-    {
-      name: 'Agenda',
-      href: '/agenda',
-      icon: Calendar,
       roles: ['psicologo', 'admin', 'secretaria'],
     },
     {
@@ -67,23 +49,33 @@ export function AppSidebar() {
       roles: ['psicologo', 'admin', 'secretaria'],
     },
     {
-      name: 'Grupos',
-      href: '/grupos',
-      icon: Users,
+      name: 'Agenda',
+      href: '/agenda',
+      icon: Calendar,
+      roles: ['psicologo', 'admin', 'secretaria'],
+    },
+    {
+      name: 'Prontuários',
+      href: '/prontuarios',
+      icon: FileText,
       roles: ['psicologo', 'admin'],
     },
-    { name: 'Prontuários', href: '/prontuarios', icon: FileText, roles: ['psicologo', 'admin'] },
-    { name: 'Financeiro', href: '/financeiro', icon: DollarSign, roles: ['psicologo', 'admin'] },
+    {
+      name: 'Financeiro',
+      href: '/financeiro',
+      icon: DollarSign,
+      roles: ['psicologo', 'admin'],
+    },
+    {
+      name: 'Gestão de Usuários',
+      href: '/usuarios',
+      icon: Shield,
+      roles: ['admin'],
+    },
     {
       name: 'Clínicas',
       href: '/clinicas',
       icon: Building2,
-      roles: ['admin'],
-    },
-    {
-      name: 'Gestão de Usuários',
-      href: '/configuracoes?tab=users',
-      icon: Shield,
       roles: ['admin'],
     },
     {
@@ -93,30 +85,19 @@ export function AppSidebar() {
       roles: ['psicologo', 'admin', 'secretaria'],
     },
     {
-      name: 'Módulos do Sistema',
-      href: '/modulos',
-      icon: Server,
-      roles: ['admin'],
+      name: 'Suporte',
+      href: '/suporte',
+      icon: LifeBuoy,
+      roles: ['psicologo', 'admin'],
     },
-    { name: 'Suporte', href: '/suporte', icon: LifeBuoy, roles: ['psicologo', 'admin'] },
-    ...(isSupervisor
-      ? [
-          {
-            name: 'Supervisão',
-            href: '/supervisao',
-            icon: GraduationCap,
-            roles: ['psicologo', 'admin'],
-          },
-        ]
-      : []),
   ]
 
-  // Patient: Meus Dados, Meus Atendimentos, Diário Pessoal, Tarefas e Escalas, Mensagens, Documentos, Configurações.
   const patientNav = [
-    { name: 'Início', href: '/portal', icon: LayoutDashboard },
-    { name: 'Mensagens', href: '/portal/mensagens', icon: MessageSquare },
+    { name: 'Meus Dados', href: '/portal/dados', icon: User },
+    { name: 'Meus Atendimentos', href: '/portal/atendimentos', icon: Calendar },
     { name: 'Diário Pessoal', href: '/portal/diario', icon: FileText },
     { name: 'Tarefas e Escalas', href: '/portal/tarefas', icon: FileText },
+    { name: 'Mensagens', href: '/portal/mensagens', icon: MessageSquare },
     { name: 'Documentos', href: '/portal/documentos', icon: FileText },
     { name: 'Configurações', href: '/portal/configuracoes', icon: Settings },
   ]

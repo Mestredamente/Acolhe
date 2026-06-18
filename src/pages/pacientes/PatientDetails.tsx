@@ -63,6 +63,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getPatient, updatePatient, deletePatient, Patient } from '@/services/patients'
 import { Appointment } from '@/services/appointments'
 import { Evolucao, getEvolucoes, deleteEvolucao, updateEvolucao } from '@/services/evolucoes'
+import { Anamnese, getAnamnese } from '@/services/anamneses'
 import { Transaction, getTransactionsByPatient } from '@/services/financeiro'
 import { PatientForm } from '@/components/PatientForm'
 import { EvolutionFormDialog } from '@/components/EvolutionFormDialog'
@@ -97,6 +98,7 @@ export default function PatientDetails() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [evolucoes, setEvolucoes] = useState<Evolucao[]>([])
+  const [anamnese, setAnamnese] = useState<Anamnese | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [documentos, setDocumentos] = useState<Documento[]>([])
 
@@ -188,6 +190,7 @@ export default function PatientDetails() {
         }),
       )
       setEvolucoes(await getEvolucoes(id))
+      setAnamnese(await getAnamnese(id))
       setTransactions(await getTransactionsByPatient(id))
       setDocumentos(await getDocumentosByPatient(id))
     } catch (e) {
@@ -743,6 +746,48 @@ export default function PatientDetails() {
               Conformidade CFP.
             </div>
           </div>
+
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b bg-muted/20">
+              <CardTitle className="text-lg">Anamnese Inicial</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {anamnese ? (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground">
+                      Queixa Principal
+                    </h4>
+                    <p className="text-sm">{anamnese.complaint || 'Não informada'}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground">
+                        Histórico Médico
+                      </h4>
+                      <p className="text-sm">{anamnese.medical_history || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground">Expectativas</h4>
+                      <p className="text-sm">
+                        {anamnese.treatment_expectations || 'Não informado'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleTabChange('anamnese')}>
+                    Ver Anamnese Completa
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground flex flex-col items-center">
+                  <p className="mb-2">Nenhuma anamnese registrada para este paciente.</p>
+                  <Button variant="outline" size="sm" onClick={() => handleTabChange('anamnese')}>
+                    Preencher Anamnese
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Resumo de Evoluções</h3>

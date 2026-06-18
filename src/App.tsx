@@ -12,17 +12,9 @@ import Agenda from './pages/agenda/Index'
 import Financeiro from './pages/financeiro/Index'
 import Faturamento from './pages/faturamento/Index'
 import Configuracoes from './pages/configuracoes/Index'
-import RelatoriosList from './pages/relatorios/Index'
-import AutomacoesList from './pages/automacoes/Index'
-import InsightsList from './pages/insights/Index'
-import JornadaControl from './pages/jornada/Index'
-import ModulosList from './pages/modulos/Index'
 import ClinicasList from './pages/clinicas/Index'
 import ClinicaDetails from './pages/clinicas/Details'
-import SupervisaoList from './pages/supervisao/Index'
-import SupervisaoDetails from './pages/supervisao/Details'
-import GruposList from './pages/grupos/Index'
-import GrupoDetails from './pages/grupos/Details'
+import UsuariosList from './pages/usuarios/Index'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -55,6 +47,8 @@ const App = () => (
           <Route element={<PortalProtectedRoute />}>
             <Route element={<PortalLayout />}>
               <Route path="/portal" element={<PortalDashboard />} />
+              <Route path="/portal/dados" element={<PortalDashboard />} />
+              <Route path="/portal/atendimentos" element={<PortalDashboard />} />
               <Route path="/portal/mensagens" element={<PortalMensagens />} />
               <Route path="/portal/diario" element={<PortalDiario />} />
               <Route path="/portal/tarefas" element={<PortalTarefas />} />
@@ -80,22 +74,14 @@ const App = () => (
               <Route path="/pacientes" element={<PacientesList />} />
               <Route path="/pacientes/:id" element={<PatientDetails />} />
               <Route path="/agenda" element={<Agenda />} />
-              <Route path="/prontuarios" element={<Navigate to="/" replace />} />
+              <Route path="/prontuarios" element={<Navigate to="/pacientes" replace />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/faturamento" element={<Faturamento />} />
-              <Route path="/relatorios" element={<RelatoriosList />} />
-              <Route path="/automacoes" element={<AutomacoesList />} />
-              <Route path="/insights" element={<InsightsList />} />
               <Route path="/clinicas" element={<ClinicasList />} />
               <Route path="/clinicas/:id" element={<ClinicaDetails />} />
+              <Route path="/usuarios" element={<UsuariosList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
-              <Route path="/grupos" element={<GruposList />} />
-              <Route path="/grupos/:id" element={<GrupoDetails />} />
-              <Route path="/jornada" element={<JornadaControl />} />
-              <Route path="/modulos" element={<ModulosList />} />
-              <Route path="/supervisao" element={<SupervisaoList />} />
-              <Route path="/supervisao/:id" element={<SupervisaoDetails />} />
             </Route>
           </Route>
 

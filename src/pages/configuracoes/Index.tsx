@@ -54,7 +54,6 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { UsersTab } from './UsersTab'
 import { AITab } from './AITab'
 import { useAuth } from '@/hooks/use-auth'
 import { Shield } from 'lucide-react'
@@ -274,14 +273,6 @@ export default function Configuracoes() {
               >
                 <BrainCircuit className="w-4 h-4 mr-2" /> Inteligência Artificial
               </TabsTrigger>
-              {user?.profile === 'admin' && (
-                <TabsTrigger
-                  value="usuarios"
-                  className="py-2 px-4 data-[state=active]:bg-teal-700 data-[state=active]:text-white rounded-md border border-slate-200 ml-auto"
-                >
-                  <Users className="w-4 h-4 mr-2" /> Usuários e Permissões
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <TabsContent value="clinica" className="mt-4">
@@ -998,12 +989,6 @@ export default function Configuracoes() {
             <TabsContent value="ia" className="mt-4">
               <AITab />
             </TabsContent>
-
-            {user?.profile === 'admin' && (
-              <TabsContent value="usuarios" className="mt-4">
-                <UsersTab />
-              </TabsContent>
-            )}
           </Tabs>
 
           <div className="flex justify-end pt-6 border-t border-slate-100">

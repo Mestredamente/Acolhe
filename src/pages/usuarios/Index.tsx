@@ -28,7 +28,7 @@ import {
 import { getUsers, createUser, updateUser, User } from '@/services/users'
 import { useToast } from '@/hooks/use-toast'
 
-export function UsersTab() {
+export default function UsuariosList() {
   const [users, setUsers] = useState<User[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -96,17 +96,20 @@ export function UsersTab() {
   }
 
   return (
-    <div className="space-y-4 animate-fade-in-up">
-      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-lg border border-slate-200">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-10">
+      <div className="flex justify-between items-center">
         <div>
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-teal-600" /> Controle de Acesso
-          </h3>
-          <p className="text-sm text-slate-500">Gerencie a equipe e os níveis de permissão.</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <ShieldAlert className="w-8 h-8 text-cyan-700" />
+            Gestão de Usuários
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Gerencie o acesso, perfis e status de todos os usuários do sistema.
+          </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openNew} className="bg-teal-700 hover:bg-teal-800">
+            <Button onClick={openNew} className="bg-cyan-700 hover:bg-cyan-800">
               <Plus className="w-4 h-4 mr-2" /> Novo Usuário
             </Button>
           </DialogTrigger>
@@ -179,7 +182,7 @@ export function UsersTab() {
                   </Select>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800 mt-4">
+              <Button type="submit" className="w-full bg-cyan-700 hover:bg-cyan-800 mt-4">
                 Salvar
               </Button>
             </form>
@@ -216,8 +219,8 @@ export function UsersTab() {
                     variant={u.status === 'ativo' ? 'default' : 'secondary'}
                     className={
                       u.status === 'ativo'
-                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
                     }
                   >
                     {u.status || 'Ativo'}
@@ -230,6 +233,13 @@ export function UsersTab() {
                 </TableCell>
               </TableRow>
             ))}
+            {users.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum usuário cadastrado.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
