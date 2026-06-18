@@ -35,6 +35,7 @@ import { GlobalOnboarding } from './components/GlobalOnboarding'
 import SuportePage from './pages/suporte/Index'
 import TermosPrivacidade from './pages/admin/Termos'
 import { TermosAcceptanceModal } from './components/TermosAcceptanceModal'
+import TemplatesList from './pages/templates/Index'
 
 const App = () => (
   <AuthProvider>
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/clinicas/:id" element={<ClinicaDetails />} />
               <Route path="/usuarios" element={<UsuariosList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/templates" element={<TemplatesList />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
               <Route path="/suporte" element={<SuportePage />} />
             </Route>

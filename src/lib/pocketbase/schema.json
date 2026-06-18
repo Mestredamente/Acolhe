@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T05:23:02.473Z",
+  "generatedAt": "2026-06-18T05:28:26.571Z",
   "collections": [
     {
       "name": "users",
@@ -2957,6 +2957,81 @@
         {
           "name": "data_fim",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "templates_evolucao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (is_padrao = true || psicologo_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (is_padrao = true || psicologo_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && psicologo_id = @request.auth.id",
+        "update": "@request.auth.id != '' && psicologo_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && psicologo_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "psicologo_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "abordagem",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "TCC",
+            "Psicanálise",
+            "Gestalt",
+            "Humanista",
+            "Comportamental",
+            "EMDR",
+            "Integrativa"
+          ]
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "is_padrao",
+          "type": "bool",
           "required": false,
           "system": false
         },

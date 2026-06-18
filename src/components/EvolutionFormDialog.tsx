@@ -19,8 +19,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Mic, Wand2, Loader2, AlertCircle } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Mic, Wand2, Loader2, AlertCircle, FileText } from 'lucide-react'
 import { Appointment } from '@/services/appointments'
+import { getTemplates, TemplateEvolucao } from '@/services/templates'
 import { createEvolucao, updateEvolucao, Evolucao } from '@/services/evolucoes'
 import { useToast } from '@/hooks/use-toast'
 import { AiValidationModal } from '@/components/AiValidationModal'
@@ -60,7 +71,16 @@ export function EvolutionFormDialog({
   const [pendingAiContent, setPendingAiContent] = useState('')
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false)
 
+  const [templates, setTemplates] = useState<TemplateEvolucao[]>([])
+  const [showTemplateWarning, setShowTemplateWarning] = useState(false)
+
   const isLocked = isRecordLocked(evolution?.created)
+
+  useEffect(() => {
+    if (open) {
+      getTemplates().then(setTemplates).catch(console.error)
+    }
+  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -80,9 +100,20 @@ export function EvolutionFormDialog({
         setAiSummary('')
         setIsSigned(false)
         setHasAudio(false)
+        setShowTemplateWarning(false)
       }
     }
   }, [open, evolution, appointments])
+
+  const systemTemplates = templates.filter((t) => t.is_padrao && t.status === 'ativo')
+  const myTemplates = templates.filter((t) => !t.is_padrao && t.status === 'ativo')
+
+  const handleApplyTemplate = (templateId: string) => {
+    const t = templates.find((x) => x.id === templateId)
+    if (!t) return
+    setContent((prev) => (prev ? prev + '\n\n' : '') + t.conteudo)
+    setShowTemplateWarning(true)
+  }
 
   const handleSimulateRecording = () => {
     setIsRecording(true)
@@ -295,11 +326,65 @@ export function EvolutionFormDialog({
               </Select>
             </div>
 
+            {showTemplateWarning && (
+              <Alert className="bg-blue-50 border-blue-200 mt-2 py-2">
+                <AlertCircle className="w-4 h-4 text-blue-700" />
+                <AlertDescription className="text-xs text-blue-800 ml-2">
+                  Template aplicado. Personalize conforme a sessão real. O registro clínico é de sua
+                  responsabilidade. Conforme CFP.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Label>Notas da Sessão</Label>
                   <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isLocked || templates.length === 0}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Usar Template
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-64" align="end">
+                        {systemTemplates.length > 0 && (
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Templates do Sistema</DropdownMenuLabel>
+                            {systemTemplates.map((t) => (
+                              <DropdownMenuItem
+                                key={t.id}
+                                onClick={() => handleApplyTemplate(t.id)}
+                              >
+                                {t.titulo}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuGroup>
+                        )}
+                        {systemTemplates.length > 0 && myTemplates.length > 0 && (
+                          <DropdownMenuSeparator />
+                        )}
+                        {myTemplates.length > 0 && (
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Meus Templates</DropdownMenuLabel>
+                            {myTemplates.map((t) => (
+                              <DropdownMenuItem
+                                key={t.id}
+                                onClick={() => handleApplyTemplate(t.id)}
+                              >
+                                {t.titulo}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuGroup>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button
                       type="button"
                       variant="outline"

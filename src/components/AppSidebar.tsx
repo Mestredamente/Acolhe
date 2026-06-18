@@ -64,6 +64,7 @@ export function AppSidebar() {
       subItems: [
         { name: 'Termos e Privacidade', href: '/admin/termos' },
         { name: 'Preferências da Plataforma', href: '/configuracoes' },
+        { name: 'Templates de Evolução', href: '/templates' },
       ],
     },
     { name: 'Suporte', href: '/suporte', icon: LifeBuoy },
@@ -89,7 +90,10 @@ export function AppSidebar() {
     {
       name: 'Configurações',
       icon: Settings,
-      subItems: [{ name: 'Meu Perfil', href: '/configuracoes' }],
+      subItems: [
+        { name: 'Meu Perfil', href: '/configuracoes' },
+        { name: 'Templates de Evolução', href: '/templates' },
+      ],
     },
     { name: 'Suporte', href: '/suporte', icon: LifeBuoy },
   ]
