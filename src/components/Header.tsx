@@ -16,6 +16,7 @@ import {
 import { ImpersonateDialog } from '@/components/ImpersonateDialog'
 import { useState } from 'react'
 import { Eye, LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function Header() {
   const { user, realUser, signOut, stopImpersonation, isDemonstrationMode, impersonatedUser } =
@@ -49,6 +50,19 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-4">
+        {!impersonatedUser &&
+          realUser?.profile !== 'secretaria' &&
+          realUser?.profile !== 'paciente' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-600 hover:text-primary hover:bg-slate-100 hidden sm:flex items-center gap-2 border border-transparent hover:border-slate-200"
+              onClick={() => setImpersonateOpen(true)}
+            >
+              <Eye className="w-4 h-4" />
+              <span className="font-medium text-xs">Visualizar Como</span>
+            </Button>
+          )}
         <NotificationsPopover />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

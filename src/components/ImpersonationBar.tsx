@@ -26,7 +26,7 @@ export function ImpersonationBar() {
           className="text-white hover:text-red-100 hover:bg-red-700 h-8"
           onClick={stopImpersonation}
         >
-          <LogOut className="w-4 h-4 mr-2" /> Encerrar
+          <LogOut className="w-4 h-4 mr-2" /> Sair da Visualização
         </Button>
       </div>
     )
@@ -39,7 +39,7 @@ export function ImpersonationBar() {
         <span>
           {isPatientView
             ? 'Modo de visualização como paciente. Acesso registrado para auditoria. Nenhuma alteração será salva.'
-            : 'Modo de visualização como equipe. Acesso registrado para auditoria.'}
+            : 'Modo de visualização como equipe. Acesso registrado para auditoria. Nenhuma alteração será salva.'}
         </span>
       </div>
       <Button
@@ -48,7 +48,7 @@ export function ImpersonationBar() {
         className="text-yellow-950 hover:text-yellow-900 hover:bg-yellow-600 h-8"
         onClick={stopImpersonation}
       >
-        <LogOut className="w-4 h-4 mr-2" /> Encerrar
+        <LogOut className="w-4 h-4 mr-2" /> Sair da Visualização
       </Button>
     </div>
   )

@@ -46,6 +46,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Monkey patch pb.send to enforce read-only and data masking rules globally
+    const originalSend = pb.send.bind(pb)
+    pb.send = async (path: string, options?: any) => {
+      const isImpersonating =
+        sessionStorage.getItem('impersonated_user') ||
+        sessionStorage.getItem('impersonated_patient')
+      const isDemonstrationMode = pb.authStore.record?.profile === 'admin' && isImpersonating
+
+      const method = options?.method?.toUpperCase() || 'GET'
+
+      if (isImpersonating && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        if (!path.includes('visualizacoes_impersonate') && !path.includes('audit_logs')) {
+          window.dispatchEvent(new CustomEvent('demo-mode-mutation-blocked'))
+          return Promise.reject(new Error('Ação bloqueada no modo de visualização'))
+        }
+      }
+
+      const sensitiveCollections = [
+        'patients',
+        'appointments',
+        'evolucoes',
+        'documentos',
+        'diario_paciente',
+        'respostas_escala',
+        'anamneses',
+      ]
+      const isSensitiveQuery = sensitiveCollections.some((c) =>
+        path.includes(`/api/collections/${c}/`),
+      )
+
+      if (isDemonstrationMode && method === 'GET' && isSensitiveQuery) {
+        window.dispatchEvent(new CustomEvent('demo-mode-blocked'))
+        return Promise.reject(new Error('Acesso bloqueado a dados de paciente (LGPD)'))
+      }
+
+      return originalSend(path, options)
+    }
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       setUser(pb.authStore.isValid ? record : null)
       setIsAuthenticated(pb.authStore.isValid)
@@ -78,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     return () => {
       unsubscribe()
+      pb.send = originalSend
     }
   }, [])
 
