@@ -22,7 +22,6 @@ import NotasFiscais from './pages/admin/NotasFiscais'
 import Contabilidade from './pages/admin/Contabilidade'
 import Comunicacoes from './pages/admin/Comunicacoes'
 import ComunicacoesHistorico from './pages/admin/ComunicacoesHistorico'
-import DadosEmpresa from './pages/admin/DadosEmpresa'
 import { Demonstracao } from './pages/admin/Demonstracao'
 import { ContasTeste } from './pages/configuracoes/ContasTeste'
 import { AuthProvider } from './hooks/use-auth'
@@ -123,8 +122,14 @@ const App = () => (
               <Route path="/admin/inadimplencia" element={<AssinaturasAtivas />} />
               <Route path="/admin/comunicacoes" element={<Comunicacoes />} />
               <Route path="/admin/comunicacoes-historico" element={<ComunicacoesHistorico />} />
-              <Route path="/admin/dados-empresa" element={<DadosEmpresa />} />
-              <Route path="/admin/auditoria" element={<Configuracoes />} />
+              <Route
+                path="/admin/dados-empresa"
+                element={<Navigate to="/configuracoes?tab=perfil-empresa" replace />}
+              />
+              <Route
+                path="/admin/auditoria"
+                element={<Navigate to="/configuracoes?tab=auditoria" replace />}
+              />
               <Route path="/admin/demonstracao" element={<Demonstracao />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/configuracoes/contas-teste" element={<ContasTeste />} />

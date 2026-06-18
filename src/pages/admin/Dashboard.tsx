@@ -58,6 +58,7 @@ import { getAuditLogs, AuditLog } from '@/services/audit_logs'
 import { getClinicas, Clinica } from '@/services/clinicas'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
+import { useBranding } from '@/hooks/use-branding'
 
 const fallbackRevenueData = [
   { month: 'Jan', real: 18000, projected: 19000 },
@@ -115,6 +116,7 @@ const COLORS = ['#1E3A8A', '#60a5fa']
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth()
+  const { welcomePhrase } = useBranding()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -325,7 +327,9 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Executivo</h1>
-          <p className="text-slate-500 mt-1">Visão gerencial da plataforma SaaS.</p>
+          <p className="text-slate-500 mt-1">
+            {welcomePhrase || 'Visão gerencial da plataforma SaaS.'}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

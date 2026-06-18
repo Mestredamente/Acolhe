@@ -14,8 +14,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LogOut } from 'lucide-react'
+import { useBranding } from '@/hooks/use-branding'
 
 export function Header() {
+  const { appName, logoUrl } = useBranding()
   const { user, signOut } = useAuth()
 
   const isPaciente = user?.profile === 'paciente'
@@ -33,8 +35,12 @@ export function Header() {
       <div className="flex items-center gap-4 flex-1">
         <SidebarTrigger className="md:hidden text-slate-500 hover:text-primary transition-colors" />
         <div className="hidden md:flex items-center gap-2 text-primary font-bold text-xl mr-8">
-          <BrainCircuit className="w-6 h-6" />
-          <span>PsicoGestão</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-6 h-6 object-contain" />
+          ) : (
+            <BrainCircuit className="w-6 h-6" />
+          )}
+          <span>{appName}</span>
         </div>
         <div className="relative max-w-md w-full hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

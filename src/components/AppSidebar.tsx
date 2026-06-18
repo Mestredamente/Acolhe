@@ -28,8 +28,10 @@ import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
+import { useBranding } from '@/hooks/use-branding'
 
 export function AppSidebar() {
+  const { appName, logoUrl } = useBranding()
   const location = useLocation()
   const { user } = useAuth()
 
@@ -208,9 +210,15 @@ export function AppSidebar() {
       <SidebarHeader className="p-6 hidden md:block">
         <div className="flex items-center gap-3">
           <div className="bg-[#1E3A8A] p-2 rounded-lg flex items-center justify-center shadow-sm">
-            <BrainCircuit className="w-6 h-6 text-white" />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-6 h-6 object-contain filter invert" />
+            ) : (
+              <BrainCircuit className="w-6 h-6 text-white" />
+            )}
           </div>
-          <span className="font-bold text-lg text-slate-900">PsicoGestão</span>
+          <span className="font-bold text-lg text-slate-900 truncate" title={appName}>
+            {appName}
+          </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
