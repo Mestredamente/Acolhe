@@ -129,6 +129,13 @@ export default function PatientDetails() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [activeTab, setActiveTab] = useState('cadastrais')
 
+  const isSupervising = Boolean(
+    patient &&
+    pb.authStore.record?.profile === 'psicologo' &&
+    pb.authStore.record?.is_supervisor &&
+    patient.user_id !== pb.authStore.record?.id,
+  )
+
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search)
     const tabParam = searchParams.get('tab')
