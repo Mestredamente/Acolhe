@@ -9,6 +9,7 @@ export interface Documento {
   description: string
   status: 'privado' | 'visivel_paciente' | 'pendente_assinatura'
   file: string
+  is_ai_generated?: boolean
   created: string
   updated: string
 }
@@ -44,4 +45,18 @@ export const updateDocumento = (id: string, data: Partial<Documento> | FormData)
 
 export const deleteDocumento = (id: string) => {
   return pb.collection<Documento>('documentos').delete(id)
+}
+
+export const generateDocumentContent = async (payload: {
+  patient_id: string
+  doc_type: string
+  context: string
+  date: string
+}) => {
+  const res = await pb.send('/backend/v1/generate-document', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return res as { content: string }
 }

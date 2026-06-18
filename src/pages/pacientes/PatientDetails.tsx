@@ -73,6 +73,7 @@ import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
 import { EscalasTab } from '@/components/EscalasTab'
 import { DocumentoFormDialog } from '@/components/DocumentoFormDialog'
+import { AiDocumentDialog } from '@/components/AiDocumentDialog'
 import { DiarioTab } from '@/components/DiarioTab'
 import {
   getDocumentosByPatient,
@@ -110,6 +111,7 @@ export default function PatientDetails() {
   const [viewingEvo, setViewingEvo] = useState<Evolucao | null>(null)
 
   const [docFormOpen, setDocFormOpen] = useState(false)
+  const [aiDocFormOpen, setAiDocFormOpen] = useState(false)
   const [editingDoc, setEditingDoc] = useState<Documento | null>(null)
 
   const [assinaturas, setAssinaturas] = useState<Assinatura[]>([])
@@ -922,6 +924,13 @@ export default function PatientDetails() {
                 <ShieldAlert className="h-4 w-4 mr-2" /> Gerar Termo LGPD
               </Button>
               <Button
+                variant="secondary"
+                onClick={() => setAiDocFormOpen(true)}
+                className="bg-primary/10 text-primary hover:bg-primary/20"
+              >
+                <Wand2 className="h-4 w-4 mr-2" /> Gerar com IA
+              </Button>
+              <Button
                 onClick={() => {
                   setEditingDoc(null)
                   setDocFormOpen(true)
@@ -952,12 +961,24 @@ export default function PatientDetails() {
                   )
                   return (
                     <TableRow key={doc.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        {doc.file_name}
-                        {doc.status === 'privado' && (
-                          <Lock className="h-3 w-3 text-muted-foreground ml-1" />
-                        )}
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate max-w-[200px]" title={doc.file_name}>
+                            {doc.file_name}
+                          </span>
+                          {doc.status === 'privado' && (
+                            <Lock className="h-3 w-3 text-muted-foreground shrink-0 ml-1" />
+                          )}
+                          {doc.is_ai_generated && (
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-200 hidden md:flex items-center gap-1 ml-2 whitespace-nowrap"
+                            >
+                              <Wand2 className="h-3 w-3" /> Gerado por IA
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="capitalize">
                         {doc.doc_type.replace(/_/g, ' ')}
@@ -1271,6 +1292,13 @@ export default function PatientDetails() {
         open={docFormOpen}
         onOpenChange={setDocFormOpen}
         documento={editingDoc}
+        patientId={patient.id}
+        onSaved={loadData}
+      />
+
+      <AiDocumentDialog
+        open={aiDocFormOpen}
+        onOpenChange={setAiDocFormOpen}
         patientId={patient.id}
         onSaved={loadData}
       />
