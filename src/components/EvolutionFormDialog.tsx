@@ -23,6 +23,7 @@ import { Mic, Wand2, Loader2 } from 'lucide-react'
 import { Appointment } from '@/services/appointments'
 import { createEvolucao, updateEvolucao, Evolucao } from '@/services/evolucoes'
 import { useToast } from '@/hooks/use-toast'
+import { AiValidationModal } from '@/components/AiValidationModal'
 
 interface Props {
   patientId: string
@@ -52,6 +53,9 @@ export function EvolutionFormDialog({
   const [content, setContent] = useState('')
   const [aiSummary, setAiSummary] = useState('')
   const [isSigned, setIsSigned] = useState(false)
+
+  const [pendingAiContent, setPendingAiContent] = useState('')
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -114,11 +118,58 @@ export function EvolutionFormDialog({
     }
     setIsGeneratingSummary(true)
     setTimeout(() => {
-      setAiSummary(
-        'Paciente relata progresso com técnicas de respiração para manejo de crises de ansiedade. Leve desconforto laboral contornado com sucesso.',
-      )
-      setIsGeneratingSummary(false)
+      const simulatedOutput = 'Paciente relata progresso com técnicas de respiração para manejo de crises de ansiedade. Leve desconforto laboral contornado com sucesso.'
+      
+      import('@/lib/ai-safety').then(({ checkClinicalSafety, logAiUsage }) => {
+        const isSafe = checkClinicalSafety(simulatedOutput)
+        if (!isSafe) {
+          logAiUsage({
+            tipo_operacao: 'evolução',
+            provedor_usado: 'Claude',
+            resumo_prompt: 'Gerar resumo da sessão baseada nas notas inseridas pelo profissional',
+            resumo_resposta: '[BLOQUEADO] ' + simulatedOutput.substring(0, 50) + '...',
+            status: 'falha'
+          })
+          toast({
+            title: 'Bloqueio de Segurança',
+            description: 'Conteúdo bloqueado por segurança clínica (ex: diagnóstico definitivo, prescrição). Edite manualmente.',
+            variant: 'destructive'
+          })
+          setIsGeneratingSummary(false)
+          return
+        }
+
+        setPendingAiContent(simulatedOutput)
+        setIsValidationModalOpen(true)
+        setIsGeneratingSummary(false)
+      })
     }, 1500)
+  }
+
+  const handleApproveAi = () => {
+    setAiSummary(pendingAiContent)
+    import('@/lib/ai-safety').then(({ logAiUsage }) => {
+      logAiUsage({
+        tipo_operacao: 'evolução',
+        provedor_usado: 'Claude',
+        resumo_prompt: 'Gerar resumo da sessão baseada nas notas',
+        resumo_resposta: pendingAiContent.substring(0, 100) + '...',
+        status: 'sucesso'
+      })
+    })
+  }
+
+  const handleRejectAi = () => {
+    setAiSummary(pendingAiContent)
+    import('@/lib/ai-safety').then(({ logAiUsage }) => {
+      logAiUsage({
+        tipo_operacao: 'evolução',
+        provedor_usado: 'Claude',
+        resumo_prompt: 'Gerar resumo da sessão baseada nas notas',
+        resumo_resposta: pendingAiContent.substring(0, 100) + '...',
+        status: 'aguardando validação'
+      })
+    })
   }
 
   const handleSave = async () => {
@@ -354,5 +405,14 @@ export function EvolutionFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+      <AiValidationModal
+        open={isValidationModalOpen}
+        onOpenChange={setIsValidationModalOpen}
+        content={pendingAiContent}
+        onApprove={handleApproveAi}
+        onReject={handleRejectAi}
+      />
+    </>
   )
 }

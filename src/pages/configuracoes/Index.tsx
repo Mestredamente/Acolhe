@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Unplug,
   Users,
+  BrainCircuit,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { getConfig, saveConfig, ConfigClinica } from '@/services/config_clinica'
@@ -54,6 +55,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { UsersTab } from './UsersTab'
+import { AITab } from './AITab'
 import { useAuth } from '@/hooks/use-auth'
 import { Shield } from 'lucide-react'
 import { SecuritySettings } from '@/components/SecuritySettings'
@@ -264,6 +266,12 @@ export default function Configuracoes() {
                 className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
               >
                 <Shield className="w-4 h-4 mr-2" /> Segurança
+              </TabsTrigger>
+              <TabsTrigger
+                value="ia"
+                className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
+              >
+                <BrainCircuit className="w-4 h-4 mr-2" /> Inteligência Artificial
               </TabsTrigger>
               {user?.profile === 'admin' && (
                 <TabsTrigger
@@ -971,6 +979,10 @@ export default function Configuracoes() {
 
             <TabsContent value="seguranca" className="mt-4">
               <SecuritySettings />
+            </TabsContent>
+
+            <TabsContent value="ia" className="mt-4">
+              <AITab />
             </TabsContent>
 
             {user?.profile === 'admin' && (

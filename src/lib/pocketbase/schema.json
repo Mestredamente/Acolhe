@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T03:10:39.802Z",
+  "generatedAt": "2026-06-18T03:21:22.665Z",
   "collections": [
     {
       "name": "users",
@@ -1827,6 +1827,86 @@
         "CREATE INDEX idx_envios_doc_id ON envios_documentos (documento_id)",
         "CREATE INDEX idx_envios_patient ON envios_documentos (patient_id)"
       ]
+    },
+    {
+      "name": "auditoria_ia",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "tipo_operacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "evolução",
+            "diário",
+            "documento",
+            "análise de padrões",
+            "análise preditiva"
+          ]
+        },
+        {
+          "name": "provedor_usado",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "resumo_prompt",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resumo_resposta",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["sucesso", "falha", "aguardando validação"]
+        },
+        {
+          "name": "data_hora",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     }
   ]
 }

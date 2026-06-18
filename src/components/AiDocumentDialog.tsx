@@ -22,6 +22,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { createDocumento, generateDocumentContent } from '@/services/documentos'
 import pb from '@/lib/pocketbase/client'
+import { AiValidationModal } from '@/components/AiValidationModal'
+import { checkClinicalSafety, logAiUsage } from '@/lib/ai-safety'
 
 export function AiDocumentDialog({
   open,
@@ -41,6 +43,9 @@ export function AiDocumentDialog({
   const [context, setContext] = useState('')
   const [generatedText, setGeneratedText] = useState('')
 
+  const [pendingAiContent, setPendingAiContent] = useState('')
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false)
+
   const handleGenerate = async () => {
     try {
       setStep('loading')
@@ -50,8 +55,28 @@ export function AiDocumentDialog({
         context,
         date,
       })
-      setGeneratedText(result.content)
-      setStep('review')
+
+      const isSafe = checkClinicalSafety(result.content)
+      if (!isSafe) {
+        logAiUsage({
+          tipo_operacao: 'documento',
+          provedor_usado: 'Claude',
+          resumo_prompt: `Gerar ${docType} com contexto: ${context.substring(0, 30)}`,
+          resumo_resposta: '[BLOQUEADO] ' + result.content.substring(0, 50),
+          status: 'falha',
+        })
+        toast({
+          title: 'Bloqueio de Segurança',
+          description:
+            'Conteúdo bloqueado por segurança clínica (ex: diagnóstico definitivo, prescrição). Edite manualmente.',
+          variant: 'destructive',
+        })
+        setStep('form')
+        return
+      }
+
+      setPendingAiContent(result.content)
+      setIsValidationModalOpen(true)
     } catch (error: any) {
       toast({
         title: 'Erro',
@@ -206,6 +231,64 @@ export function AiDocumentDialog({
           </div>
         )}
       </DialogContent>
+
+      <AiValidationModal
+        open={isValidationModalOpen}
+        onOpenChange={setIsValidationModalOpen}
+        content={pendingAiContent}
+        onApprove={async () => {
+          setGeneratedText(pendingAiContent)
+
+          logAiUsage({
+            tipo_operacao: 'documento',
+            provedor_usado: 'Claude',
+            resumo_prompt: `Gerar ${docType}`,
+            resumo_resposta: pendingAiContent.substring(0, 100) + '...',
+            status: 'sucesso',
+          })
+
+          try {
+            let internalDocType = 'outro'
+            if (docType === 'Laudo Psicológico') internalDocType = 'laudo'
+            else if (docType === 'Atestado de Comparecimento') internalDocType = 'atestado'
+            else if (docType === 'Relatório de Evolução' || docType === 'Relatório de Sessão')
+              internalDocType = 'evolucao'
+
+            await createDocumento({
+              patient_id: patientId,
+              user_id: pb.authStore.record?.id,
+              file_name: `${docType} - ${new Date(date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`,
+              doc_type: internalDocType,
+              description: pendingAiContent,
+              status: 'privado',
+              is_ai_generated: true,
+            })
+            toast({ title: 'Sucesso', description: 'Documento gerado, validado e salvo.' })
+            onSaved()
+            setStep('form')
+            setContext('')
+            setGeneratedText('')
+            onOpenChange(false)
+          } catch (error: any) {
+            toast({
+              title: 'Erro',
+              description: error.message || 'Falha ao salvar documento.',
+              variant: 'destructive',
+            })
+          }
+        }}
+        onReject={() => {
+          setGeneratedText(pendingAiContent)
+          setStep('review')
+          logAiUsage({
+            tipo_operacao: 'documento',
+            provedor_usado: 'Claude',
+            resumo_prompt: `Gerar ${docType}`,
+            resumo_resposta: pendingAiContent.substring(0, 100) + '...',
+            status: 'aguardando validação',
+          })
+        }}
+      />
     </Dialog>
   )
 }
