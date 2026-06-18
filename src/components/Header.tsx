@@ -1,27 +1,57 @@
+import { Search, BrainCircuit } from 'lucide-react'
 import { NotificationsPopover } from '@/components/NotificationsPopover'
-import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { useAuth } from '@/hooks/use-auth'
 
 export function Header() {
+  const { user } = useAuth()
+  const isPaciente = user?.profile === 'paciente'
+  const isSecretaria = user?.profile === 'secretaria'
+
+  const getRoleName = () => {
+    if (isPaciente) return 'Paciente'
+    if (isSecretaria) return 'Secretária'
+    if (user?.profile === 'admin') return 'Administrador'
+    return 'Psicólogo Clínico'
+  }
+
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-6">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="md:hidden" />
+    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white px-6 shadow-sm z-10 sticky top-0 w-full transition-all duration-300">
+      <div className="flex items-center gap-4 flex-1">
+        <SidebarTrigger className="md:hidden text-slate-500 hover:text-primary transition-colors" />
+        <div className="hidden md:flex items-center gap-2 text-primary font-bold text-xl mr-8">
+          <BrainCircuit className="w-6 h-6" />
+          <span>PsicoGestão</span>
+        </div>
+        <div className="relative max-w-md w-full hidden sm:block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar pacientes, agendamentos, etc..."
+            className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-primary rounded-[6px]"
+          />
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <NotificationsPopover />
-        <div className="flex items-center gap-3 border-l pl-4">
+        <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
           <div className="flex flex-col items-end hidden sm:flex">
-            <span className="text-sm font-medium">Dra. Clara Mendes</span>
-            <span className="text-xs text-muted-foreground">Psicóloga Clínica</span>
+            <span className="text-sm font-semibold text-slate-900">{user?.name || 'Usuário'}</span>
+            <span className="text-xs text-slate-500">{getRoleName()}</span>
           </div>
-          <Avatar className="h-9 w-9 border border-border">
+          <Avatar className="h-10 w-10 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
             <AvatarImage
-              src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=99"
-              alt="Dra. Clara"
+              src={
+                user?.avatar
+                  ? `https://gestao-clinica-psicologica-4cb9d.shrd00.internal.goskip.dev/api/files/users/${user.id}/${user.avatar}`
+                  : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+              }
+              alt={user?.name || 'User'}
             />
-            <AvatarFallback>CM</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+              {user?.name?.substring(0, 2).toUpperCase() || 'US'}
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>

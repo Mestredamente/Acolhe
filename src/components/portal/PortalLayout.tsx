@@ -1,141 +1,24 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/use-auth'
-import { Button } from '@/components/ui/button'
-import {
-  LogOut,
-  Home,
-  BookHeart,
-  CheckSquare,
-  FileText,
-  MessageSquare,
-  Settings,
-  Shield,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { NotificationsPopover } from '@/components/NotificationsPopover'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Outlet } from 'react-router-dom'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/AppSidebar'
+import { Header } from '@/components/Header'
+import { DisclaimerNotice } from '@/components/DisclaimerNotice'
 
 export function PortalLayout() {
-  const { signOut } = useAuth()
-  const location = useLocation()
-
-  const navItems = [
-    { name: 'Início', path: '/portal', icon: Home },
-    { name: 'Mensagens', path: '/portal/mensagens', icon: MessageSquare },
-    { name: 'Diário', path: '/portal/diario', icon: BookHeart },
-    { name: 'Tarefas', path: '/portal/tarefas', icon: CheckSquare },
-    { name: 'Documentos', path: '/portal/documentos', icon: FileText },
-  ]
-
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-emerald-200">
-      <header className="bg-white border-b border-emerald-100 px-4 md:px-6 py-4 shadow-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/portal" className="flex items-center gap-2 group">
-            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600 group-hover:bg-emerald-200 transition-colors">
-              <BookHeart className="w-5 h-5" />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background animate-fade-in text-gray-900 font-sans">
+        <AppSidebar />
+        <SidebarInset className="flex w-full flex-col overflow-hidden bg-transparent">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <DisclaimerNotice />
+            <div className="mx-auto max-w-5xl w-full">
+              <Outlet />
             </div>
-            <h1 className="text-xl font-bold text-emerald-800 tracking-tight">PsicoPortal</h1>
-          </Link>
-          <div className="flex items-center gap-4">
-            <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/50">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = location.pathname === item.path
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300',
-                      isActive
-                        ? 'bg-white text-emerald-700 shadow-sm'
-                        : 'text-slate-500 hover:text-emerald-600 hover:bg-slate-200/50',
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-            <NotificationsPopover isPortal />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full text-emerald-600 hover:bg-emerald-50"
-                >
-                  <Settings className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-56 bg-white border-emerald-100 shadow-md rounded-xl"
-              >
-                <DropdownMenuLabel className="text-emerald-900 font-semibold">
-                  Minha Conta
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-emerald-50" />
-                <DropdownMenuItem
-                  asChild
-                  className="focus:bg-emerald-50 focus:text-emerald-800 rounded-lg cursor-pointer"
-                >
-                  <Link to="/portal/configuracoes" className="w-full flex items-center">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Segurança (2FA)
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-emerald-50" />
-                <DropdownMenuItem
-                  onClick={signOut}
-                  className="text-rose-600 focus:bg-rose-50 focus:text-rose-700 rounded-lg cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Nav */}
-      <div className="md:hidden bg-white border-b border-emerald-100 px-4 py-2 overflow-x-auto sticky top-[73px] z-10 shadow-sm">
-        <nav className="flex items-center gap-2 w-max">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap',
-                  isActive
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'text-slate-500 hover:bg-slate-100',
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {item.name}
-              </Link>
-            )
-          })}
-        </nav>
+          </main>
+        </SidebarInset>
       </div>
-
-      <main className="max-w-5xl mx-auto p-4 md:p-8 pb-24">
-        <Outlet />
-      </main>
-    </div>
+    </SidebarProvider>
   )
 }

@@ -2,15 +2,17 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { Header } from './Header'
+import { DisclaimerNotice } from './DisclaimerNotice'
 
 export default function Layout() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background animate-fade-in">
+      <div className="flex min-h-screen w-full bg-background animate-fade-in text-gray-900 font-sans">
         <AppSidebar />
-        <SidebarInset className="flex w-full flex-col overflow-hidden">
+        <SidebarInset className="flex w-full flex-col overflow-hidden bg-transparent">
           <Header />
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <DisclaimerNotice />
             <div className="mx-auto max-w-6xl w-full">
               <Outlet />
             </div>
