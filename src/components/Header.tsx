@@ -13,15 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ImpersonateDialog } from '@/components/ImpersonateDialog'
-import { useState } from 'react'
-import { Eye, LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { LogOut } from 'lucide-react'
 
 export function Header() {
-  const { user, realUser, signOut, stopImpersonation, isDemonstrationMode, impersonatedUser } =
-    useAuth()
-  const [impersonateOpen, setImpersonateOpen] = useState(false)
+  const { user, signOut } = useAuth()
 
   const isPaciente = user?.profile === 'paciente'
   const isSecretaria = user?.profile === 'secretaria'
@@ -50,19 +45,6 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        {!impersonatedUser &&
-          realUser?.profile !== 'secretaria' &&
-          realUser?.profile !== 'paciente' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-600 hover:text-primary hover:bg-slate-100 hidden sm:flex items-center gap-2 border border-transparent hover:border-slate-200"
-              onClick={() => setImpersonateOpen(true)}
-            >
-              <Eye className="w-4 h-4" />
-              <span className="font-medium text-xs">Visualizar Como</span>
-            </Button>
-          )}
         <NotificationsPopover />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -93,36 +75,12 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-
-            {impersonatedUser && (
-              <DropdownMenuItem
-                onClick={stopImpersonation}
-                className="text-amber-600 font-medium cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 mr-2" /> Encerrar Visualização
-              </DropdownMenuItem>
-            )}
-
-            {!impersonatedUser &&
-              realUser?.profile !== 'secretaria' &&
-              realUser?.profile !== 'paciente' && (
-                <DropdownMenuItem
-                  onClick={() => setImpersonateOpen(true)}
-                  className="cursor-pointer"
-                >
-                  <Eye className="w-4 h-4 mr-2" /> Visualizar como...
-                </DropdownMenuItem>
-              )}
-
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-red-600 cursor-pointer">
               <LogOut className="w-4 h-4 mr-2" /> Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      <ImpersonateDialog open={impersonateOpen} onOpenChange={setImpersonateOpen} />
     </header>
   )
 }

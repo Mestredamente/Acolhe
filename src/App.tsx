@@ -15,12 +15,23 @@ import Configuracoes from './pages/configuracoes/Index'
 import ClinicasList from './pages/clinicas/Index'
 import ClinicaDetails from './pages/clinicas/Details'
 import UsuariosList from './pages/usuarios/Index'
+import AssinantesList from './pages/admin/AssinantesList'
+import PlanosList from './pages/admin/PlanosList'
+import AssinaturasAtivas from './pages/admin/AssinaturasAtivas'
+import NotasFiscais from './pages/admin/NotasFiscais'
+import Contabilidade from './pages/admin/Contabilidade'
+import Comunicacoes from './pages/admin/Comunicacoes'
+import ComunicacoesHistorico from './pages/admin/ComunicacoesHistorico'
+import DadosEmpresa from './pages/admin/DadosEmpresa'
+import { Demonstracao } from './pages/admin/Demonstracao'
+import { ContasTeste } from './pages/configuracoes/ContasTeste'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SecretaryDashboard } from './pages/secretaria/Dashboard'
 import { PortalLogin } from './pages/portal/Login'
 import { PortalDashboard } from './pages/portal/Dashboard'
+import PortalAtendimentos from './pages/portal/Atendimentos'
 import { PortalDiario } from './pages/portal/Diario'
 import { PortalTarefas } from './pages/portal/Tarefas'
 import { PortalDocumentos } from './pages/portal/Documentos'
@@ -36,6 +47,10 @@ import SuportePage from './pages/suporte/Index'
 import TermosPrivacidade from './pages/admin/Termos'
 import { TermosAcceptanceModal } from './components/TermosAcceptanceModal'
 import TemplatesList from './pages/templates/Index'
+import MinhaAssinatura from './pages/financeiro/MinhaAssinatura'
+import MinhasFaturas from './pages/financeiro/MinhasFaturas'
+import DadosProfissionais from './pages/configuracoes/DadosProfissionais'
+import Sessao from './pages/Sessao'
 
 const App = () => (
   <AuthProvider>
@@ -48,6 +63,7 @@ const App = () => (
 
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal/convite/:token" element={<PortalOnboarding />} />
+          <Route path="/sessao/:id" element={<Sessao />} />
           <Route element={<PortalProtectedRoute />}>
             <Route
               element={
@@ -59,7 +75,7 @@ const App = () => (
             >
               <Route path="/portal" element={<PortalDashboard />} />
               <Route path="/portal/dados" element={<PortalDashboard />} />
-              <Route path="/portal/atendimentos" element={<PortalDashboard />} />
+              <Route path="/portal/atendimentos" element={<PortalAtendimentos />} />
               <Route path="/portal/mensagens" element={<PortalMensagens />} />
               <Route path="/portal/diario" element={<PortalDiario />} />
               <Route path="/portal/tarefas" element={<PortalTarefas />} />
@@ -91,13 +107,39 @@ const App = () => (
               <Route path="/prontuarios" element={<Navigate to="/pacientes" replace />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/faturamento" element={<Faturamento />} />
-              <Route path="/clinicas" element={<ClinicasList />} />
+              <Route path="/clinicas" element={<Navigate to="/admin/assinantes" replace />} />
               <Route path="/clinicas/:id" element={<ClinicaDetails />} />
               <Route path="/usuarios" element={<UsuariosList />} />
+              <Route path="/admin/assinantes" element={<AssinantesList />} />
+              <Route path="/admin/planos" element={<PlanosList />} />
+              <Route path="/admin/assinaturas" element={<AssinaturasAtivas />} />
+              <Route path="/admin/faturamento" element={<AssinaturasAtivas />} />
+              <Route path="/admin/notas-fiscais" element={<NotasFiscais />} />
+              <Route path="/admin/contabilidade" element={<Contabilidade />} />
+              <Route
+                path="/admin/relatorios-receita"
+                element={<Navigate to="/admin/contabilidade" replace />}
+              />
+              <Route path="/admin/inadimplencia" element={<AssinaturasAtivas />} />
+              <Route path="/admin/comunicacoes" element={<Comunicacoes />} />
+              <Route path="/admin/comunicacoes-historico" element={<ComunicacoesHistorico />} />
+              <Route path="/admin/dados-empresa" element={<DadosEmpresa />} />
+              <Route path="/admin/auditoria" element={<Configuracoes />} />
+              <Route path="/admin/demonstracao" element={<Demonstracao />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/configuracoes/contas-teste" element={<ContasTeste />} />
               <Route path="/templates" element={<TemplatesList />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
               <Route path="/suporte" element={<SuportePage />} />
+              <Route path="/minha-assinatura" element={<MinhaAssinatura />} />
+              <Route path="/minhas-faturas" element={<MinhasFaturas />} />
+              <Route path="/dados-profissionais" element={<DadosProfissionais />} />
+              <Route path="/preferencias" element={<Configuracoes />} />
+              <Route path="/documentos" element={<Navigate to="/pacientes" replace />} />
+              <Route path="/grupos" element={<Navigate to="/" replace />} />
+              <Route path="/supervisao" element={<Navigate to="/" replace />} />
+              <Route path="/telepsicologia" element={<Navigate to="/" replace />} />
+              <Route path="/controle-ponto" element={<Navigate to="/" replace />} />
             </Route>
           </Route>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Users,
@@ -12,6 +12,7 @@ import {
   MessageSquare,
   User,
   Building2,
+  Video,
 } from 'lucide-react'
 import { getAppointments } from '@/services/appointments'
 import { getPatients } from '@/services/patients'
@@ -40,7 +41,7 @@ interface PredictiveAlert {
 }
 
 export default function Index() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const isAdmin = user?.profile === 'admin'
 
   const [stats, setStats] = useState({
@@ -58,6 +59,20 @@ export default function Index() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
 
   useEffect(() => {
+    if (authLoading) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
+    if (
+      user?.profile === 'admin' ||
+      user?.profile === 'secretaria' ||
+      user?.profile === 'paciente'
+    ) {
+      setLoading(false)
+      return
+    }
+
     async function loadData() {
       try {
         const [patients, appointments, transactions, diarios, escalasPendentes, clinicas, users] =
@@ -347,12 +362,26 @@ export default function Index() {
     loadData()
   }, [])
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
-        <div className="loading-spinner" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user?.profile === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+  if (user?.profile === 'secretaria') {
+    return <Navigate to="/secretaria/dashboard" replace />
+  }
+  if (user?.profile === 'paciente') {
+    return <Navigate to="/portal" replace />
   }
 
   return (
@@ -584,32 +613,53 @@ export default function Index() {
                     <div className="bg-primary/10 text-primary font-semibold p-3 rounded-lg text-center min-w-[75px] shadow-sm">
                       <div className="text-lg">{app.start_time || '00:00'}</div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-gray-900 truncate">
-                          {app.patient_name_text || app.expand?.patient_id?.name || 'Paciente'}
-                        </h4>
-                        <Badge
-                          variant="outline"
+                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 truncate">
+                            {app.patient_name_text || app.expand?.patient_id?.name || 'Paciente'}
+                          </h4>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px] uppercase font-bold py-0 h-5 whitespace-nowrap',
+                              riskClass,
+                            )}
+                          >
+                            {riskLabel}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                          {app.type}
+                          {app.type === 'Online' && app.link_sessao && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div
                           className={cn(
-                            'text-[10px] uppercase font-bold py-0 h-5 whitespace-nowrap',
-                            riskClass,
+                            'px-3 py-1 rounded-full text-xs font-medium shadow-sm whitespace-nowrap hidden sm:block',
+                            app.status === 'confirmada'
+                              ? 'bg-success/10 text-success'
+                              : 'bg-slate-100 text-slate-600',
                           )}
                         >
-                          {riskLabel}
-                        </Badge>
+                          {app.status}
+                        </div>
+
+                        {app.type === 'Online' && app.link_sessao && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-blue-700 hover:bg-blue-800 text-white text-xs whitespace-nowrap h-8"
+                            onClick={() => window.open(app.link_sessao, '_blank')}
+                          >
+                            <Video className="w-3 h-3 mr-1.5" />
+                            Iniciar Sessão
+                          </Button>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-500 mt-0.5">{app.type}</p>
-                    </div>
-                    <div
-                      className={cn(
-                        'px-3 py-1 rounded-full text-xs font-medium shadow-sm whitespace-nowrap',
-                        app.status === 'confirmada'
-                          ? 'bg-success/10 text-success'
-                          : 'bg-slate-100 text-slate-600',
-                      )}
-                    >
-                      {app.status}
                     </div>
                   </div>
                 )

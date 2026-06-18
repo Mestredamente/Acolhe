@@ -42,6 +42,7 @@ export interface Patient {
   created: string
   updated: string
   deleted_at?: string
+  is_teste?: boolean
 }
 
 export const getPatients = async () => {

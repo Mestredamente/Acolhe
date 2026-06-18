@@ -4,21 +4,16 @@ import type { Patient } from './patients'
 export interface Notificacao {
   id: string
   user_id: string
+  perfil_destino: 'gestor_saas' | 'owner_clinica' | 'psicologo' | 'secretaria' | 'paciente'
+  id_clinica?: string
+  tenant_demo_id?: string
   patient_id?: string
-  type:
-    | 'consulta_proxima'
-    | 'consulta_confirmada'
-    | 'pagamento_pendente'
-    | 'pagamento_atrasado'
-    | 'escala_pendente'
-    | 'diario_novo'
-    | 'mensagem_nova'
-    | 'documento_pendente'
-    | 'sistema'
+  type: 'agenda' | 'prontuario' | 'financeiro' | 'sistema' | 'mensagem'
   title: string
   message: string
   status: 'lida' | 'nao_lida'
   read_date?: string
+  is_active: boolean
   link?: string
   created: string
   updated: string

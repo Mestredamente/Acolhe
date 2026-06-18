@@ -11,10 +11,12 @@ onRecordAfterUpdateSuccess((e) => {
       const notif = new Record($app.findCollectionByNameOrId('notificacoes'))
       notif.set('user_id', user_id)
       notif.set('patient_id', fin.getString('patient_id') || null)
-      notif.set('type', 'pagamento_atrasado')
+      notif.set('perfil_destino', 'psicologo')
+      notif.set('type', 'financeiro')
       notif.set('title', 'Pagamento Atrasado')
       notif.set('message', `Um pagamento de R$ ${fin.getFloat('amount')} consta como atrasado.`)
       notif.set('status', 'nao_lida')
+      notif.set('is_active', true)
       notif.set('link', '/financeiro')
       $app.save(notif)
     } catch (err) {}

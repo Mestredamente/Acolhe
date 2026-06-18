@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T05:33:23.665Z",
+  "generatedAt": "2026-06-18T13:58:56.053Z",
   "collections": [
     {
       "name": "users",
@@ -112,6 +112,12 @@
         {
           "name": "deleted_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_teste",
+          "type": "bool",
           "required": false,
           "system": false
         }
@@ -399,6 +405,12 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "is_teste",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -410,7 +422,7 @@
         "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
+        "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
       },
       "fields": [
@@ -496,7 +508,9 @@
             "agendada",
             "confirmada",
             "cancelada",
-            "concluida"
+            "concluida",
+            "cancelada_pelo_paciente",
+            "reagendada"
           ]
         },
         {
@@ -531,6 +545,46 @@
         {
           "name": "deleted_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "canceled_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link_sessao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_link",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "proprio",
+            "externo"
+          ]
+        },
+        {
+          "name": "data_geracao_link",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_teste",
+          "type": "bool",
           "required": false,
           "system": false
         }
@@ -618,6 +672,12 @@
         {
           "name": "deleted_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_teste",
+          "type": "bool",
           "required": false,
           "system": false
         }
@@ -1847,8 +1907,8 @@
       "name": "notificacoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && user_id = @request.auth.id",
-        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "list": "@request.auth.id != '' && user_id = @request.auth.id && is_active = true",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id && is_active = true",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -1874,15 +1934,11 @@
           "required": true,
           "system": false,
           "selectValues": [
-            "consulta_proxima",
-            "consulta_confirmada",
-            "pagamento_pendente",
-            "pagamento_atrasado",
-            "escala_pendente",
-            "diario_novo",
-            "mensagem_nova",
-            "documento_pendente",
-            "sistema"
+            "agenda",
+            "prontuario",
+            "financeiro",
+            "sistema",
+            "mensagem"
           ]
         },
         {
@@ -1937,6 +1993,39 @@
             "onCreate",
             "onUpdate"
           ]
+        },
+        {
+          "name": "perfil_destino",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "gestor_saas",
+            "owner_clinica",
+            "psicologo",
+            "secretaria",
+            "paciente"
+          ]
+        },
+        {
+          "name": "id_clinica",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clinicas"
+        },
+        {
+          "name": "tenant_demo_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "tenants_demo"
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2366,6 +2455,12 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "is_demo",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -2626,7 +2721,7 @@
         {
           "name": "id_clinica",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "clinicas"
         },
@@ -2696,6 +2791,20 @@
             "onCreate",
             "onUpdate"
           ]
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "plano_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "saas_planos"
         }
       ],
       "indexes": []
@@ -3209,91 +3318,6 @@
       "indexes": []
     },
     {
-      "name": "visualizacoes_impersonate",
-      "type": "base",
-      "apiRules": {
-        "list": "@request.auth.profile = 'admin' || usuario_admin_id = @request.auth.id",
-        "view": "@request.auth.profile = 'admin' || usuario_admin_id = @request.auth.id",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && usuario_admin_id = @request.auth.id",
-        "delete": null
-      },
-      "fields": [
-        {
-          "name": "usuario_admin_id",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "users"
-        },
-        {
-          "name": "perfil_visualizado",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": [
-            "admin",
-            "clinica_owner",
-            "psicologo",
-            "secretaria",
-            "paciente"
-          ]
-        },
-        {
-          "name": "clinica_id",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "clinicas"
-        },
-        {
-          "name": "patient_id",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "patients"
-        },
-        {
-          "name": "dados_ficticios",
-          "type": "bool",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "data_inicio",
-          "type": "date",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "data_fim",
-          "type": "date",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "created",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
-        },
-        {
-          "name": "updated",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
-        }
-      ],
-      "indexes": []
-    },
-    {
       "name": "templates_evolucao",
       "type": "base",
       "apiRules": {
@@ -3353,6 +3377,327 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "saas_planos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "clinica",
+            "autonomo"
+          ]
+        },
+        {
+          "name": "valor_mensal",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "limite_psicologos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "limite_pacientes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "features",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "ativo",
+            "inativo"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "empresa_fiscal",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "regime_tributario",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Simples Nacional",
+            "Lucro Presumido",
+            "Lucro Real"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        },
+        {
+          "name": "nome_aplicativo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo_aplicativo",
+          "type": "file",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "log_acessos_sala",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.profile = 'admin'",
+        "view": "@request.auth.profile = 'admin'",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "consulta_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "appointments"
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "perfil",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "psicologo",
+            "paciente"
+          ]
+        },
+        {
+          "name": "ip_origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "entrada",
+            "saida"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "tenants_demo",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.profile = 'admin'",
+        "view": "@request.auth.profile = 'admin'",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "clinica",
+            "autonomo"
+          ]
+        },
+        {
+          "name": "plano",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "ativo",
+            "inativo"
+          ]
+        },
+        {
+          "name": "data_expiracao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "demo_user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "demo_clinica_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clinicas"
         },
         {
           "name": "created",

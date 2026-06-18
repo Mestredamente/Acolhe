@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckSquare } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import pb from '@/lib/pocketbase/client'
+import { getConsentimentos } from '@/services/consentimentos'
 
 const schema = z
   .object({
@@ -48,6 +49,9 @@ const schema = z
     status: z.enum(['agendada', 'confirmada', 'cancelada', 'concluida']),
     observations: z.string().optional(),
     link_or_room: z.string().optional(),
+    link_sessao: z.string().optional(),
+    tipo_link: z.enum(['proprio', 'externo']).optional(),
+    data_geracao_link: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -83,6 +87,7 @@ export function AppointmentFormDialog({
   const [open, setOpen] = useState(false)
   const [patients, setPatients] = useState<Patient[]>([])
   const [config, setConfig] = useState<ConfigClinica | null>(null)
+  const [telepsicologiaBlocked, setTelepsicologiaBlocked] = useState(false)
   const isEditing = !!appointment
 
   useEffect(() => {
@@ -109,8 +114,46 @@ export function AppointmentFormDialog({
       status: appointment?.status || 'agendada',
       observations: appointment?.observations || '',
       link_or_room: appointment?.link_or_room || '',
+      link_sessao: appointment?.link_sessao || '',
+      tipo_link: appointment?.tipo_link || 'proprio',
+      data_geracao_link: appointment?.data_geracao_link || '',
     },
   })
+
+  const watchPatient = form.watch('patient_id')
+  const watchType = form.watch('type')
+  const watchLinkSessao = form.watch('link_sessao')
+
+  useEffect(() => {
+    const checkConsents = async () => {
+      if (watchType !== 'Online') {
+        setTelepsicologiaBlocked(false)
+        return
+      }
+
+      const pIds = Array.isArray(watchPatient) ? watchPatient : [watchPatient].filter(Boolean)
+      if (pIds.length === 0) {
+        setTelepsicologiaBlocked(false)
+        return
+      }
+
+      let blocked = false
+      for (const pid of pIds) {
+        try {
+          const consents = await getConsentimentos(pid)
+          const teleConsent = consents.find((c) => c.tipo === 'telepsicologia')
+          if (!teleConsent || !teleConsent.aceito) {
+            blocked = true
+            break
+          }
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+      setTelepsicologiaBlocked(blocked)
+    }
+    checkConsents()
+  }, [watchPatient, watchType])
 
   const startTime = form.watch('start_time')
   const prevStartTime = useRef(startTime)
@@ -146,6 +189,9 @@ export function AppointmentFormDialog({
         status: appointment.status,
         observations: appointment.observations || '',
         link_or_room: appointment.link_or_room || '',
+        link_sessao: appointment.link_sessao || '',
+        tipo_link: appointment.tipo_link || 'proprio',
+        data_geracao_link: appointment.data_geracao_link || '',
       })
     } else if (defaultDate || defaultStartTime || defaultGrupoId) {
       form.reset({
@@ -178,6 +224,15 @@ export function AppointmentFormDialog({
   const tipoSessao = form.watch('tipo_sessao')
 
   const onSubmit = async (data: z.infer<typeof schema>) => {
+    if (data.type === 'Online' && telepsicologiaBlocked) {
+      toast({
+        title: 'Consentimento pendente',
+        description: 'O paciente precisa aceitar o termo de telepsicologia.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       const isGrupo = data.tipo_sessao === 'grupo'
       const patientIds = Array.isArray(data.patient_id) ? data.patient_id : [data.patient_id]
@@ -353,6 +408,16 @@ export function AppointmentFormDialog({
                   </FormItem>
                 )}
               />
+              {telepsicologiaBlocked && (
+                <div className="col-span-2 p-3 bg-rose-50 text-rose-800 rounded-md border border-rose-200 text-sm flex items-start gap-2 animate-fade-in">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    Consentimento para telepsicologia pendente. Solicite ao paciente antes de
+                    agendar.
+                  </span>
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="type"
@@ -428,14 +493,54 @@ export function AppointmentFormDialog({
                 name="link_or_room"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Link / Sala</FormLabel>
+                    <FormLabel>Local da Consulta (Físico ou Externo)</FormLabel>
                     <FormControl>
-                      <Input placeholder="ex: meet..." {...field} />
+                      <Input placeholder="ex: Sala 2 ou link externo" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {watchType === 'Online' && (
+                <div className="col-span-2 space-y-3 p-4 bg-slate-50 border border-blue-100 rounded-lg animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-blue-900 flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" /> Sala Virtual Segura
+                      </h4>
+                      <p className="text-xs text-blue-700/80 mt-1">
+                        Sessão online registrada. Acesso monitorado para segurança. Conforme CFP e
+                        LGPD.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="bg-white border-blue-200 hover:bg-blue-50 text-blue-700"
+                      onClick={() => {
+                        const uuid = crypto.randomUUID()
+                        form.setValue('link_sessao', `/sessao/${uuid}`)
+                        form.setValue('tipo_link', 'proprio')
+                        form.setValue('data_geracao_link', new Date().toISOString())
+                      }}
+                    >
+                      Gerar Link da Sessão
+                    </Button>
+                  </div>
+                  {watchLinkSessao && (
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <FormLabel className="text-xs text-blue-800">Link Gerado (Interno)</FormLabel>
+                      <Input
+                        value={window.location.origin + watchLinkSessao}
+                        readOnly
+                        className="bg-white text-sm border-blue-200 text-blue-900"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t">
               {isEditing &&

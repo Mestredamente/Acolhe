@@ -9,7 +9,13 @@ export interface Appointment {
   status: string
   type: string
   time: string
+  cancel_reason?: string
+  canceled_at?: string
   deleted_at?: string
+  link_sessao?: string
+  tipo_link?: 'proprio' | 'externo'
+  data_geracao_link?: string
+  expand?: any
 }
 
 export const getAppointments = async () => {

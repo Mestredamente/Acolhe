@@ -33,5 +33,30 @@ onRecordAfterUpdateSuccess((e) => {
       console.log('Error generating financeiro on concluida', err.message)
     }
   }
+
+  // Notificar cancelamento
+  if (
+    originalStatus !== newStatus &&
+    (newStatus === 'cancelada' || newStatus === 'cancelada_pelo_paciente')
+  ) {
+    const user_id = e.record.getString('user_id')
+    try {
+      const notif = new Record($app.findCollectionByNameOrId('notificacoes'))
+      notif.set('user_id', user_id)
+      notif.set('patient_id', e.record.getString('patient_id') || null)
+      notif.set('perfil_destino', 'psicologo')
+      notif.set('type', 'agenda')
+      notif.set('title', 'Consulta Cancelada')
+      notif.set(
+        'message',
+        `A consulta do dia ${e.record.getString('appointment_date')} foi cancelada.`,
+      )
+      notif.set('status', 'nao_lida')
+      notif.set('is_active', true)
+      notif.set('link', '/agenda')
+      $app.save(notif)
+    } catch (err) {}
+  }
+
   e.next()
 }, 'appointments')
