@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Mic, Wand2, Loader2 } from 'lucide-react'
+import { Mic, Wand2, Loader2, AlertCircle } from 'lucide-react'
 import { Appointment } from '@/services/appointments'
 import { createEvolucao, updateEvolucao, Evolucao } from '@/services/evolucoes'
 import { useToast } from '@/hooks/use-toast'

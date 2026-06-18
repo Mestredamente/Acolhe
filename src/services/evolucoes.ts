@@ -12,12 +12,10 @@ export interface Evolucao {
 }
 
 export const getEvolucoes = async (patientId: string) => {
-  return await pb
-    .collection<Evolucao>('evolucoes')
-    .getFullList({
-      filter: `patient_id = '${patientId}' && deleted_at = ""`,
-      sort: '-session_date',
-    })
+  return await pb.collection<Evolucao>('evolucoes').getFullList({
+    filter: `patient_id = '${patientId}' && deleted_at = ""`,
+    sort: '-session_date',
+  })
 }
 
 export const getAllEvolucoes = async () => {

@@ -18,12 +18,10 @@ export const getDocumentosByPatient = async (patientId: string) => {
 }
 
 export const getPortalDocumentos = async (patientId: string) => {
-  return await pb
-    .collection<Documento>('documentos')
-    .getFullList({
-      filter: `patient_id = '${patientId}' && status = 'visivel_paciente' && deleted_at = ""`,
-      sort: '-created',
-    })
+  return await pb.collection<Documento>('documentos').getFullList({
+    filter: `patient_id = '${patientId}' && status = 'visivel_paciente' && deleted_at = ""`,
+    sort: '-created',
+  })
 }
 
 export const getAllDocumentos = async () => {
