@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Download } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { getEmpresaFiscal, saveEmpresaFiscal, EmpresaFiscal } from '@/services/empresa_fiscal'
+import { getAuditLogs, createAuditLog, AuditLog } from '@/services/audit_logs'
+import { useToast } from '@/hooks/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -9,11 +15,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -21,352 +25,439 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { getEmpresaFiscal, saveEmpresaFiscal } from '@/services/empresa_fiscal'
-import pb from '@/lib/pocketbase/client'
-import { AddressFormFields, PhoneInput, CpfCnpjInput } from '@/components/ui/masked-inputs'
+import { AddressFormFields } from '@/components/ui/masked-inputs'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { format } from 'date-fns'
 
 const schema = z.object({
   id: z.string().optional(),
-  nome_aplicativo: z.string().min(1, 'Nome do aplicativo é obrigatório'),
+  logo_aplicativo: z.any().optional(),
+  nome_aplicativo: z.string().min(1, 'Obrigatório'),
+  cor_primaria: z.string().min(1, 'Obrigatória'),
   frase_boas_vindas: z.string().optional(),
-  cor_primaria: z.string().optional(),
-  cnpj: z.string().min(1, 'CNPJ é obrigatório'),
-  razao_social: z.string().min(1, 'Razão Social é obrigatória'),
+  cnpj: z.string().min(1, 'Obrigatório'),
+  razao_social: z.string().min(1, 'Obrigatória'),
   nome_fantasia: z.string().optional(),
   inscricao_estadual: z.string().optional(),
   inscricao_municipal: z.string().optional(),
   regime_tributario: z.string().optional(),
-  telefone: z.string().optional(),
-  email_contato: z.string().email('E-mail inválido').or(z.literal('')).optional(),
-  website: z.string().url('URL inválida').or(z.literal('')).optional(),
   cep: z.string().optional(),
   logradouro: z.string().optional(),
   numero: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
+  telefone: z.string().optional(),
+  email_contato: z.string().email('E-mail inválido').or(z.literal('')).optional(),
+  website: z.string().url('URL inválida').or(z.literal('')).optional(),
+  timezone: z.string().optional(),
+  moeda: z.string().optional(),
+  idioma: z.string().optional(),
+  dominio_personalizado: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
 
 export function PerfilEmpresaTab() {
   const { toast } = useToast()
-  const [loading, setLoading] = useState(true)
+  const [logs, setLogs] = useState<AuditLog[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [currentLogo, setCurrentLogo] = useState<string | null>(null)
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cor_primaria: '#1E3A8A',
+      nome_aplicativo: '',
+      cor_primaria: '#1E3A5F',
+      frase_boas_vindas: '',
+      cnpj: '',
+      razao_social: '',
+      nome_fantasia: '',
+      inscricao_estadual: '',
+      inscricao_municipal: '',
+      regime_tributario: '',
+      cep: '',
+      logradouro: '',
+      numero: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      telefone: '',
+      email_contato: '',
+      website: '',
+      timezone: '',
+      moeda: '',
+      idioma: '',
+      dominio_personalizado: '',
     },
   })
 
   useEffect(() => {
     getEmpresaFiscal().then((data) => {
       if (data) {
-        form.reset(data as unknown as FormData)
-        if (data.logo_aplicativo) {
-          setCurrentLogo(pb.files.getUrl(data, data.logo_aplicativo))
-        }
+        const safeData = { ...data }
+        Object.keys(safeData).forEach((key) => {
+          if (
+            safeData[key as keyof typeof safeData] === null ||
+            safeData[key as keyof typeof safeData] === undefined
+          ) {
+            safeData[key as keyof typeof safeData] = ''
+          }
+        })
+        form.reset(safeData as any)
       }
-      setLoading(false)
     })
+    loadLogs()
   }, [form])
+
+  const loadLogs = async () => setLogs(await getAuditLogs("tabela_afetada = 'empresa_fiscal'"))
 
   const onSubmit = async (data: FormData) => {
     try {
+      const oldData = data.id ? await getEmpresaFiscal() : null
       const payload = new window.FormData()
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          payload.append(key, String(value))
+
+      Object.entries(data).forEach(([k, v]) => {
+        if (v != null && k !== 'logo_aplicativo') payload.append(k, String(v))
+      })
+      if (logoFile) payload.append('logo_aplicativo', logoFile)
+
+      const saved = await saveEmpresaFiscal(data.id || null, payload)
+      form.setValue('id', saved.id)
+
+      if (oldData) {
+        const changes = Object.keys(data)
+          .filter(
+            (k) =>
+              k !== 'logo_aplicativo' &&
+              data[k as keyof FormData] !== oldData[k as keyof EmpresaFiscal],
+          )
+          .map((k) => ({
+            field: k,
+            old: String(oldData[k as keyof EmpresaFiscal] || ''),
+            new: String(data[k as keyof FormData] || ''),
+          }))
+
+        if (changes.length > 0) {
+          await createAuditLog({
+            usuario_id: pb.authStore.record?.id,
+            acao: 'atualizacao',
+            tabela_afetada: 'empresa_fiscal',
+            registro_id: saved.id,
+            descricao: JSON.stringify(changes),
+          })
+          loadLogs()
         }
-      })
-      if (logoFile) {
-        payload.append('logo_aplicativo', logoFile)
       }
-
-      await saveEmpresaFiscal(data.id || null, payload)
-
-      toast({
-        title: 'Perfil salvo',
-        description:
-          'As configurações da empresa foram atualizadas. Recarregue a página para aplicar o tema em tempo real.',
-      })
+      toast({ title: 'Configurações da empresa salvas com sucesso' })
     } catch (e) {
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Verifique os dados e tente novamente.',
-        variant: 'destructive',
-      })
+      toast({ title: 'Erro ao salvar configurações', variant: 'destructive' })
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-slate-500 text-sm">Carregando...</div>
+  const exportLogs = () => {
+    const rows = ['Data,Usuário,Ação/Campo,Valor Anterior,Novo Valor']
+    logs.forEach((log) => {
+      let parsed: any[] = []
+      try {
+        parsed = JSON.parse(log.descricao)
+      } catch {
+        /* intentionally ignored */
+      }
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].field) {
+        parsed.forEach((c) =>
+          rows.push(
+            `${format(new Date(log.created), 'dd/MM/yyyy HH:mm')},${log.expand?.usuario_id?.name || 'Sistema'},${c.field},"${c.old}","${c.new}"`,
+          ),
+        )
+      } else {
+        rows.push(
+          `${format(new Date(log.created), 'dd/MM/yyyy HH:mm')},${log.expand?.usuario_id?.name || 'Sistema'},${log.acao},,"${log.descricao}"`,
+        )
+      }
+    })
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'auditoria-empresa.csv'
+    a.click()
+  }
+
+  const SField = ({ name, label, options }: any) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <Select onValueChange={field.onChange} value={field.value || undefined}>
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {options.map((o: any) => (
+                <SelectItem key={o.v} value={o.v}>
+                  {o.l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
+  const IField = ({ name, label, placeholder, disabled }: any) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input
+              placeholder={placeholder}
+              disabled={disabled}
+              {...(disabled ? { value: placeholder } : { ...field, value: field.value ?? '' })}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
-        <Card>
-          <CardHeader>
-            <CardTitle>Identidade Visual (White-Label)</CardTitle>
-            <CardDescription>
-              Personalize a marca da plataforma para todos os usuários.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
-              {logoFile ? (
-                <img
-                  src={URL.createObjectURL(logoFile)}
-                  alt="Preview"
-                  className="w-16 h-16 object-contain rounded bg-white shadow-sm"
-                />
-              ) : currentLogo ? (
-                <img
-                  src={currentLogo}
-                  alt="Logo"
-                  className="w-16 h-16 object-contain rounded bg-white shadow-sm"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-white border shadow-sm rounded flex items-center justify-center text-slate-300 text-xs">
-                  Logo
-                </div>
-              )}
-              <FormItem className="flex-1">
-                <FormLabel>Logo da Aplicação (PNG/JPG/SVG)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/png, image/jpeg, image/svg+xml"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) setLogoFile(e.target.files[0])
-                      else setLogoFile(null)
-                    }}
+    <div className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Identidade Visual</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                {logoFile ? (
+                  <img
+                    src={URL.createObjectURL(logoFile)}
+                    alt="Logo"
+                    className="w-16 h-16 object-contain rounded bg-white shadow-sm"
                   />
-                </FormControl>
-                <FormDescription>Recomendado: SVG ou PNG transparente (max 2MB).</FormDescription>
-              </FormItem>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="nome_aplicativo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Plataforma</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: PsicoGestão" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                ) : form.watch('logo_aplicativo') &&
+                  typeof form.watch('logo_aplicativo') === 'string' ? (
+                  <img
+                    src={pb.files.getUrl(
+                      { collectionId: 'empresa_fiscal', id: form.getValues('id') as string },
+                      form.watch('logo_aplicativo') as string,
+                    )}
+                    alt="Logo"
+                    className="w-16 h-16 object-contain rounded bg-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-white border shadow-sm rounded flex items-center justify-center text-xs text-slate-300">
+                    Logo
+                  </div>
                 )}
-              />
+                <FormItem className="flex-1">
+                  <FormLabel>Logo do Aplicativo</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                    />
+                  </FormControl>
+                </FormItem>
+              </div>
+              <IField name="nome_aplicativo" label="Nome do Aplicativo (Público)" />
               <FormField
                 control={form.control}
                 name="cor_primaria"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cor Primária (Hexadecimal)</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
+                    <FormLabel>Cor Primária</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
                         <Input
                           type="color"
-                          className="w-14 p-1 h-10 cursor-pointer rounded border border-slate-200"
+                          className="w-12 h-10 p-1 cursor-pointer"
                           {...field}
-                          value={field.value || '#1E3A8A'}
+                          value={field.value ?? '#1E3A5F'}
                         />
-                      </FormControl>
-                      <FormControl>
                         <Input
-                          className="flex-1 font-mono uppercase"
-                          placeholder="#1E3A8A"
+                          type="text"
+                          placeholder="#1E3A5F"
+                          className="flex-1"
                           {...field}
-                          value={field.value || ''}
+                          value={field.value ?? ''}
                         />
-                      </FormControl>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="frase_boas_vindas"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Frase de Boas-vindas (Dashboard)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Bem-vindo ao painel de gestão"
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-          </CardContent>
-        </Card>
+              <div className="md:col-span-2">
+                <IField name="frase_boas_vindas" label="Mensagem de Boas-vindas do Dashboard" />
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados Comerciais e Fiscais</CardTitle>
-            <CardDescription>Informações legais da empresa que gerencia o SaaS.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="cnpj"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CNPJ</FormLabel>
-                    <FormControl>
-                      <CpfCnpjInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="razao_social"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Razão Social</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="nome_fantasia"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Fantasia</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
+          <Card>
+            <CardHeader>
+              <CardTitle>Dados Fiscais</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <IField name="cnpj" label="CNPJ" />
+              <IField name="razao_social" label="Razão Social" />
+              <IField name="nome_fantasia" label="Nome Fantasia" />
+              <IField name="inscricao_estadual" label="Inscrição Estadual" />
+              <IField name="inscricao_municipal" label="Inscrição Municipal" />
+              <SField
                 name="regime_tributario"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Regime Tributário</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
-                        <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
-                        <SelectItem value="Lucro Real">Lucro Real</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Regime Tributário"
+                options={[
+                  { v: 'Simples Nacional', l: 'Simples Nacional' },
+                  { v: 'Lucro Presumido', l: 'Lucro Presumido' },
+                  { v: 'Lucro Real', l: 'Lucro Real' },
+                ]}
               />
-              <FormField
-                control={form.control}
-                name="inscricao_estadual"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Inscrição Estadual</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="inscricao_municipal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Inscrição Municipal</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="telefone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <PhoneInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email_contato"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>E-mail de Contato</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="website"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Website</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://"
-                        {...field}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+              <div className="md:col-span-2">
+                <AddressFormFields form={form} prefix="" label="" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <AddressFormFields form={form} prefix="" label="Endereço da Empresa" />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Contato</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <IField name="telefone" label="Telefone" />
+              <IField name="email_contato" label="E-mail de Contato" />
+              <IField name="website" label="Website" />
+            </CardContent>
+          </Card>
 
-        <div className="flex justify-end border-t border-slate-100 pt-6">
-          <Button
-            type="submit"
-            size="lg"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Salvar Alterações
+          <Card>
+            <CardHeader>
+              <CardTitle>Personalização do Sistema</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SField
+                name="timezone"
+                label="Fuso Horário (Timezone)"
+                options={[
+                  { v: 'America/Sao_Paulo', l: 'Horário de Brasília (BRT)' },
+                  { v: 'America/Manaus', l: 'Horário do Amazonas (AMT)' },
+                  { v: 'America/Belem', l: 'Horário do Pará (BRT)' },
+                  { v: 'America/Fortaleza', l: 'Horário do Nordeste (BRT)' },
+                  { v: 'America/Rio_Branco', l: 'Horário do Acre (ACT)' },
+                  { v: 'America/Boa_Vista', l: 'Horário de Roraima (AMT)' },
+                  { v: 'America/Cuiaba', l: 'Horário do Mato Grosso (AMT)' },
+                ]}
+              />
+              <IField
+                name="dominio_personalizado"
+                label="Domínio Personalizado"
+                placeholder="ex: app.minhaempresa.com.br"
+              />
+              <IField
+                name="moeda"
+                label="Moeda Padrão"
+                disabled
+                placeholder="R$ (Real Brasileiro)"
+              />
+              <IField
+                name="idioma"
+                label="Idioma Padrão"
+                disabled
+                placeholder="Português (Brasil)"
+              />
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button type="submit" size="lg">
+              Salvar Alterações
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Auditoria de Alterações</CardTitle>
+          <Button variant="outline" size="sm" onClick={exportLogs}>
+            <Download className="w-4 h-4 mr-2" /> Exportar Logs
           </Button>
-        </div>
-      </form>
-    </Form>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Campo / Ação</TableHead>
+                <TableHead>Valor Anterior</TableHead>
+                <TableHead>Novo Valor</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-slate-500 py-4">
+                    Nenhum registro encontrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                logs.map((log) => {
+                  let parsed: any[] = []
+                  try {
+                    parsed = JSON.parse(log.descricao)
+                  } catch {
+                    /* intentionally ignored */
+                  }
+                  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].field) {
+                    return parsed.map((c, i) => (
+                      <TableRow key={`${log.id}-${i}`}>
+                        <TableCell>{format(new Date(log.created), 'dd/MM/yyyy HH:mm')}</TableCell>
+                        <TableCell>{log.expand?.usuario_id?.name || 'Sistema'}</TableCell>
+                        <TableCell>{c.field}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-slate-500">
+                          {c.old}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-emerald-600">
+                          {c.new}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  }
+                  return (
+                    <TableRow key={log.id}>
+                      <TableCell>{format(new Date(log.created), 'dd/MM/yyyy HH:mm')}</TableCell>
+                      <TableCell>{log.expand?.usuario_id?.name || 'Sistema'}</TableCell>
+                      <TableCell>{log.acao}</TableCell>
+                      <TableCell colSpan={2} className="text-slate-500 truncate max-w-[300px]">
+                        {log.descricao}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

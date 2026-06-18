@@ -79,7 +79,6 @@ export function AppSidebar() {
       subItems: [
         { name: 'Dados da Empresa', href: '/admin/dados-empresa' },
         { name: 'Termos e Privacidade', href: '/admin/termos' },
-        { name: 'Auditoria', href: '/admin/auditoria' },
       ],
     },
     { name: 'Demonstração', href: '/admin/demonstracao', icon: Target },

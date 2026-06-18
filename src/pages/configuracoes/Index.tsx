@@ -59,7 +59,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { Shield, Building, FileText } from 'lucide-react'
 import { SecuritySettings } from '@/components/SecuritySettings'
 import { PerfilEmpresaTab } from './PerfilEmpresaTab'
-import { AuditoriaTab } from './AuditoriaTab'
 import { useLocation } from 'react-router-dom'
 import {
   PhoneInput,
@@ -266,26 +265,17 @@ export default function Configuracoes() {
               value="perfil-empresa"
               className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
             >
-              <Building className="w-4 h-4 mr-2" /> Perfil da Empresa
-            </TabsTrigger>
-            <TabsTrigger
-              value="auditoria"
-              className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
-            >
-              <FileText className="w-4 h-4 mr-2" /> Auditoria
+              <Building className="w-4 h-4 mr-2" /> Dados da Empresa
             </TabsTrigger>
             <TabsTrigger
               value="seguranca"
               className="py-2 px-4 data-[state=active]:bg-cyan-950 data-[state=active]:text-white rounded-md"
             >
-              <Shield className="w-4 h-4 mr-2" /> Segurança
+              <Shield className="w-4 h-4 mr-2" /> Permissão
             </TabsTrigger>
           </TabsList>
           <TabsContent value="perfil-empresa" className="mt-4">
             <PerfilEmpresaTab />
-          </TabsContent>
-          <TabsContent value="auditoria" className="mt-4">
-            <AuditoriaTab />
           </TabsContent>
           <TabsContent value="seguranca" className="mt-4">
             <SecuritySettings />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:11:02.542Z",
+  "generatedAt": "2026-06-18T21:14:33.962Z",
   "collections": [
     {
       "name": "users",
@@ -2743,7 +2743,14 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["leitura", "escrita", "exclusao_logica", "login", "logout"]
+          "selectValues": [
+            "leitura",
+            "escrita",
+            "exclusao_logica",
+            "login",
+            "logout",
+            "atualizacao"
+          ]
         },
         {
           "name": "tabela_afetada",
@@ -3297,6 +3304,39 @@
         },
         {
           "name": "estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timezone",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "America/Sao_Paulo",
+            "America/Manaus",
+            "America/Belem",
+            "America/Fortaleza",
+            "America/Rio_Branco",
+            "America/Boa_Vista",
+            "America/Cuiaba"
+          ]
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "idioma",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dominio_personalizado",
           "type": "text",
           "required": false,
           "system": false

@@ -126,10 +126,6 @@ const App = () => (
                 path="/admin/dados-empresa"
                 element={<Navigate to="/configuracoes?tab=perfil-empresa" replace />}
               />
-              <Route
-                path="/admin/auditoria"
-                element={<Navigate to="/configuracoes?tab=auditoria" replace />}
-              />
               <Route path="/admin/demonstracao" element={<Demonstracao />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/configuracoes/contas-teste" element={<ContasTeste />} />
