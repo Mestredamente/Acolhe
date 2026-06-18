@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
 
 export function TermosAcceptanceModal() {
-  const { user } = useAuth()
+  const { user, impersonatedUser, impersonatedPatient } = useAuth()
   const [open, setOpen] = useState(false)
   const [termos, setTermos] = useState<TermoVersionamento[]>([])
   const [acceptedState, setAcceptedState] = useState<Record<string, boolean>>({})
@@ -24,7 +24,10 @@ export function TermosAcceptanceModal() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user || impersonatedUser || impersonatedPatient) {
+      setLoading(false)
+      return
+    }
     const checkTermos = async () => {
       try {
         const active = await getActiveTermos()
@@ -43,7 +46,7 @@ export function TermosAcceptanceModal() {
       }
     }
     checkTermos()
-  }, [user])
+  }, [user, impersonatedUser, impersonatedPatient])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, id: string) => {
     const target = e.currentTarget
@@ -68,7 +71,7 @@ export function TermosAcceptanceModal() {
     }
   }
 
-  if (loading || !open) return null
+  if (loading || !open || impersonatedUser || impersonatedPatient) return null
 
   const allChecked = termos.every((t) => acceptedState[t.id])
 
