@@ -16,8 +16,22 @@ export interface Patient {
   guardian_relationship?: 'pai' | 'mãe' | 'tutor' | 'outro'
   guardian_consent_status?: 'assinado' | 'pendente'
   guardian_observations?: string
+  cep?: string
+  logradouro?: string
+  numero?: string
+  bairro?: string
+  cidade?: string
+  estado?: string
+  pais?: string
   billing_id: string
-  billing_address: string
+  billing_address?: string
+  billing_cep?: string
+  billing_logradouro?: string
+  billing_numero?: string
+  billing_bairro?: string
+  billing_cidade?: string
+  billing_estado?: string
+  billing_pais?: string
   status: 'active' | 'inactive'
   avatar: string
   last_consultation: string

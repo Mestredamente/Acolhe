@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -28,6 +28,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  CpfInput,
+  PhoneInput,
+  CpfCnpjInput,
+  AddressFormFields,
+} from '@/components/ui/masked-inputs'
 
 export const patientSchema = z
   .object({
@@ -36,7 +42,13 @@ export const patientSchema = z
     birth_date: z.string().optional(),
     phone: z.string().optional(),
     email: z.string().email('Email inválido').or(z.literal('')).optional(),
-    address: z.string().optional(),
+    cep: z.string().optional(),
+    logradouro: z.string().optional(),
+    numero: z.string().optional(),
+    bairro: z.string().optional(),
+    cidade: z.string().optional(),
+    estado: z.string().optional(),
+    pais: z.string().optional(),
     emergency_contact_name: z.string().optional(),
     emergency_contact_phone: z.string().optional(),
     guardian_name: z.string().optional(),
@@ -47,7 +59,13 @@ export const patientSchema = z
     guardian_consent_status: z.enum(['assinado', 'pendente']).default('pendente'),
     guardian_consent_check: z.boolean().optional(),
     billing_id: z.string().optional(),
-    billing_address: z.string().optional(),
+    billing_cep: z.string().optional(),
+    billing_logradouro: z.string().optional(),
+    billing_numero: z.string().optional(),
+    billing_bairro: z.string().optional(),
+    billing_cidade: z.string().optional(),
+    billing_estado: z.string().optional(),
+    billing_pais: z.string().optional(),
     status: z.enum(['active', 'inactive']).default('active'),
   })
   .superRefine((data, ctx) => {
@@ -101,6 +119,10 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: PatientFormProps) {
+  const [cpfValid, setCpfValid] = useState(true)
+  const [guardianCpfValid, setGuardianCpfValid] = useState(true)
+  const [billingIdValid, setBillingIdValid] = useState(true)
+
   const form = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
@@ -109,7 +131,13 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
       birth_date: defaultValues?.birth_date ? defaultValues.birth_date.split(' ')[0] : '',
       phone: defaultValues?.phone || '',
       email: defaultValues?.email || '',
-      address: defaultValues?.address || '',
+      cep: defaultValues?.cep || '',
+      logradouro: defaultValues?.logradouro || '',
+      numero: defaultValues?.numero || '',
+      bairro: defaultValues?.bairro || '',
+      cidade: defaultValues?.cidade || '',
+      estado: defaultValues?.estado || '',
+      pais: defaultValues?.pais || 'Brasil',
       emergency_contact_name: defaultValues?.emergency_contact_name || '',
       emergency_contact_phone: defaultValues?.emergency_contact_phone || '',
       guardian_name: defaultValues?.guardian_name || '',
@@ -120,7 +148,13 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
       guardian_consent_status: defaultValues?.guardian_consent_status || 'pendente',
       guardian_consent_check: defaultValues?.guardian_consent_status === 'assinado' || false,
       billing_id: defaultValues?.billing_id || '',
-      billing_address: defaultValues?.billing_address || '',
+      billing_cep: defaultValues?.billing_cep || '',
+      billing_logradouro: defaultValues?.billing_logradouro || '',
+      billing_numero: defaultValues?.billing_numero || '',
+      billing_bairro: defaultValues?.billing_bairro || '',
+      billing_cidade: defaultValues?.billing_cidade || '',
+      billing_estado: defaultValues?.billing_estado || '',
+      billing_pais: defaultValues?.billing_pais || 'Brasil',
       status: defaultValues?.status || 'active',
     },
   })
@@ -134,6 +168,7 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
   }, [birthDateValue])
 
   const isMinor = age !== null && age < 18
+  const formIsValid = cpfValid && guardianCpfValid && billingIdValid
 
   return (
     <Form {...form}>
@@ -172,7 +207,7 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               <FormItem>
                 <FormLabel>CPF</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <CpfInput {...field} onValidityChange={setCpfValid} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -201,7 +236,7 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               <FormItem>
                 <FormLabel>Telefone</FormLabel>
                 <FormControl>
-                  <Input placeholder="+55 11 90000-0000" {...field} />
+                  <PhoneInput {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -228,204 +263,105 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               </FormItem>
             )}
           />
-          <div className="md:col-span-2">
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+        </div>
 
-          {isMinor && (
-            <div className="md:col-span-2 mt-2 bg-sky-50 border border-sky-200 rounded-lg p-5 space-y-5 animate-fade-in">
-              <h3 className="font-semibold text-sky-900 border-b border-sky-200 pb-2">
-                Menor de Idade — Dados do Responsável Legal
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="guardian_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Responsável *</FormLabel>
+        <AddressFormFields form={form} prefix="" label="Endereço Residencial" />
+
+        {isMinor && (
+          <div className="mt-4 bg-sky-50 border border-sky-200 rounded-lg p-5 space-y-5 animate-fade-in">
+            <h3 className="font-semibold text-sky-900 border-b border-sky-200 pb-2">
+              Menor de Idade — Dados do Responsável Legal
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="guardian_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Responsável *</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="bg-white" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="guardian_cpf"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF do Responsável *</FormLabel>
+                    <FormControl>
+                      <CpfInput
+                        {...field}
+                        className="bg-white"
+                        onValidityChange={setGuardianCpfValid}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="guardian_phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone (DDI) *</FormLabel>
+                    <FormControl>
+                      <PhoneInput {...field} className="bg-white" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="guardian_relationship"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grau de Parentesco *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input {...field} className="bg-white" />
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
                       </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pai">Pai</SelectItem>
+                        <SelectItem value="mãe">Mãe</SelectItem>
+                        <SelectItem value="tutor">Tutor Legal</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="guardian_consent_check"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 p-4 border border-sky-200 rounded-md bg-white shadow-sm">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium leading-relaxed">
+                        Declaro que sou responsável legal deste menor e autorizo o tratamento
+                        psicológico.
+                      </FormLabel>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guardian_cpf"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CPF do Responsável *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="000.000.000-00" {...field} className="bg-white" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guardian_phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone (DDI) *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+55 11 90000-0000" {...field} className="bg-white" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guardian_relationship"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grau de Parentesco *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="pai">Pai</SelectItem>
-                          <SelectItem value="mãe">Mãe</SelectItem>
-                          <SelectItem value="tutor">Tutor Legal</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="guardian_observations"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Observações sobre o Responsável</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="guardian_consent_status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status do Consentimento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Selecione o status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="pendente">Pendente de Assinatura</SelectItem>
-                            <SelectItem value="assinado">Já Assinado / Coletado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="guardian_consent_check"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border border-sky-200 rounded-md bg-white shadow-sm">
-                        <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="text-sm font-medium leading-relaxed">
-                            Declaro que sou responsável legal deste menor e autorizo o tratamento
-                            psicológico. Li e aceito os termos de privacidade e o código de ética do
-                            CFP. *
-                          </FormLabel>
-                          <FormMessage />
-                          <div className="pt-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="link"
-                                  className="p-0 h-auto text-xs text-sky-600 hover:text-sky-800"
-                                >
-                                  Visualizar termo completo
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle className="text-lg">
-                                    Termo de Consentimento e Privacidade
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="text-sm text-slate-700 space-y-4 max-h-[60vh] overflow-y-auto pr-2 leading-relaxed">
-                                  <p>
-                                    Este documento visa registrar o consentimento livre, informado e
-                                    esclarecido do responsável legal para o tratamento psicológico
-                                    do menor, em conformidade com o Estatuto da Criança e do
-                                    Adolescente (ECA) e a Lei Geral de Proteção de Dados Pessoais
-                                    (LGPD).
-                                  </p>
-                                  <p>
-                                    1. <strong>Do Sigilo e Confidencialidade:</strong> O atendimento
-                                    psicológico do menor é resguardado pelo sigilo profissional,
-                                    conforme o Código de Ética do Conselho Federal de Psicologia
-                                    (CFP). Informações essenciais serão compartilhadas com os
-                                    responsáveis apenas quando necessário para a proteção e
-                                    continuidade do tratamento do menor.
-                                  </p>
-                                  <p>
-                                    2. <strong>Do Tratamento de Dados:</strong> Os dados pessoais e
-                                    sensíveis serão tratados exclusivamente para fins clínicos,
-                                    mantidos em segurança e não serão compartilhados com terceiros
-                                    sem autorização expressa, exceto em casos previstos em lei.
-                                  </p>
-                                  <p>
-                                    3. <strong>Da Participação Familiar:</strong> Entendo que minha
-                                    colaboração e participação ativa, quando solicitada, são
-                                    fundamentais para o desenvolvimento do processo terapêutico.
-                                  </p>
-                                  <p>
-                                    Ao marcar a caixa de seleção, declaro ter lido e concordado com
-                                    as condições descritas acima.
-                                  </p>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
+          </div>
+        )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2 mt-4">
             <h3 className="font-semibold text-primary border-b pb-2">Contato de Emergência</h3>
           </div>
@@ -449,16 +385,16 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               <FormItem>
                 <FormLabel>Telefone (Emergência)</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <PhoneInput {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </div>
 
-          <div className="md:col-span-2 mt-4">
-            <h3 className="font-semibold text-primary border-b pb-2">Faturamento</h3>
-          </div>
+        <AddressFormFields form={form} prefix="billing_" label="Faturamento e Cobrança" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="billing_id"
@@ -466,20 +402,20 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               <FormItem>
                 <FormLabel>CPF/CNPJ (Faturamento)</FormLabel>
                 <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="billing_address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Endereço de Faturamento</FormLabel>
-                <FormControl>
-                  <Input {...field} />
+                  <CpfCnpjInput
+                    {...field}
+                    onValidityChange={setBillingIdValid}
+                    onFetchData={(data: any) => {
+                      if (data.nome) form.setValue('name', data.nome)
+                      if (data.cep) form.setValue('billing_cep', data.cep)
+                      if (data.logradouro) form.setValue('billing_logradouro', data.logradouro)
+                      if (data.numero) form.setValue('billing_numero', data.numero)
+                      if (data.bairro) form.setValue('billing_bairro', data.bairro)
+                      if (data.cidade) form.setValue('billing_cidade', data.cidade)
+                      if (data.estado) form.setValue('billing_estado', data.estado)
+                      if (data.pais) form.setValue('billing_pais', data.pais)
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -493,7 +429,7 @@ export function PatientForm({ defaultValues, onSubmit, loading, onCancel }: Pati
               Cancelar
             </Button>
           )}
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || !formIsValid}>
             {loading ? 'Salvando...' : 'Salvar Dados'}
           </Button>
         </div>

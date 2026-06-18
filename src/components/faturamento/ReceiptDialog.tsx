@@ -23,6 +23,7 @@ import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { getPatient, getPatients, Patient } from '@/services/patients'
 import { useAuth } from '@/hooks/use-auth'
 import { Loader2, Mail, Download, CheckCircle2 } from 'lucide-react'
+import { CpfCnpjInput, CurrencyInput } from '@/components/ui/masked-inputs'
 
 export function ReceiptDialog({
   open,
@@ -245,10 +246,15 @@ export function ReceiptDialog({
               </div>
               <div className="space-y-2">
                 <Label>CPF / CNPJ</Label>
-                <Input
+                <CpfCnpjInput
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                  placeholder="000.000.000-00"
+                  onChange={(e: any) => setFormData({ ...formData, cpf: e.target.value })}
+                  onFetchData={(data: any) => {
+                    setFormData({
+                      ...formData,
+                      address: `${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.cidade} - ${data.estado}, ${data.cep}`,
+                    })
+                  }}
                 />
               </div>
               <div className="space-y-2 col-span-2">
@@ -261,10 +267,9 @@ export function ReceiptDialog({
               </div>
               <div className="space-y-2">
                 <Label>Valor</Label>
-                <Input
-                  type="number"
+                <CurrencyInput
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                  onChange={(val: number) => setFormData({ ...formData, amount: val })}
                 />
               </div>
               <div className="space-y-2">

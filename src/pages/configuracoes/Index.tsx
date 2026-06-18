@@ -57,6 +57,12 @@ import { UsersTab } from './UsersTab'
 import { useAuth } from '@/hooks/use-auth'
 import { Shield } from 'lucide-react'
 import { SecuritySettings } from '@/components/SecuritySettings'
+import {
+  PhoneInput,
+  CurrencyInput,
+  CpfCnpjInput,
+  AddressFormFields,
+} from '@/components/ui/masked-inputs'
 
 const diasSemana = [
   { id: 'segunda', label: 'Segunda-feira' },
@@ -75,6 +81,13 @@ const schema = z.object({
   endereco_completo: z.string().optional(),
   telefone_ddi: z.string().optional(),
   email_contato: z.string().email('E-mail inválido').or(z.literal('')).optional(),
+  cep: z.string().optional(),
+  logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
+  pais: z.string().optional(),
   nome_profissional: z.string().optional(),
   abordagem_principal: z.string().optional(),
   tempo_formacao: z.string().optional(),
@@ -292,7 +305,7 @@ export default function Configuracoes() {
                         <FormItem>
                           <FormLabel>CNPJ / CPF</FormLabel>
                           <FormControl>
-                            <Input placeholder="00.000.000/0000-00" {...field} />
+                            <CpfCnpjInput {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -318,29 +331,14 @@ export default function Configuracoes() {
                         <FormItem>
                           <FormLabel>Telefone / WhatsApp</FormLabel>
                           <FormControl>
-                            <Input placeholder="(00) 00000-0000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="endereco_completo"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Endereço Completo</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Rua, Número, Bairro, Cidade - Estado, CEP"
-                              {...field}
-                            />
+                            <PhoneInput {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  <AddressFormFields form={form} prefix="" label="Endereço da Clínica" />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -569,11 +567,7 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>Número do WhatsApp da Clínica</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="+55 (11) 99999-9999"
-                                {...field}
-                                value={field.value || ''}
-                              />
+                              <PhoneInput {...field} />
                             </FormControl>
                             <FormDescription>Usado nas automações de mensagens.</FormDescription>
                             <FormMessage />
@@ -644,7 +638,7 @@ export default function Configuracoes() {
                         <FormItem>
                           <FormLabel>Valor Padrão da Sessão (R$)</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <CurrencyInput {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

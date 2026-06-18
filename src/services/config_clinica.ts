@@ -9,6 +9,13 @@ export interface ConfigClinica {
   endereco_completo?: string
   telefone_ddi?: string
   email_contato?: string
+  cep?: string
+  logradouro?: string
+  numero?: string
+  bairro?: string
+  cidade?: string
+  estado?: string
+  pais?: string
   logo?: string
   assinatura_padrao?: string
   cor_primaria?: string

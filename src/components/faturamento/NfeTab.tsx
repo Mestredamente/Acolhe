@@ -33,6 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { CpfCnpjInput, CurrencyInput } from '@/components/ui/masked-inputs'
 
 export function NfeTab() {
   const { toast } = useToast()
@@ -118,22 +119,6 @@ export function NfeTab() {
     })
   }
 
-  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let v = e.target.value.replace(/\D/g, '')
-    if (v.length > 14) v = v.substring(0, 14)
-    if (v.length <= 11) {
-      v = v.replace(/(\d{3})(\d)/, '$1.$2')
-      v = v.replace(/(\d{3})(\d)/, '$1.$2')
-      v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-    } else {
-      v = v.replace(/^(\d{2})(\d)/, '$1.$2')
-      v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      v = v.replace(/\.(\d{3})(\d)/, '.$1/$2')
-      v = v.replace(/(\d{4})(\d)/, '$1-$2')
-    }
-    setFormData({ ...formData, documento: v })
-  }
-
   return (
     <div className="space-y-6">
       <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800">
@@ -176,10 +161,15 @@ export function NfeTab() {
             </div>
             <div className="space-y-2">
               <Label>CPF / CNPJ do Tomador</Label>
-              <Input
+              <CpfCnpjInput
                 value={formData.documento}
-                onChange={handleDocumentChange}
-                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                onChange={(e: any) => setFormData({ ...formData, documento: e.target.value })}
+                onFetchData={(data: any) => {
+                  setFormData({
+                    ...formData,
+                    address: `${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.cidade} - ${data.estado}, ${data.cep}`,
+                  })
+                }}
               />
             </div>
             <div className="space-y-2 col-span-2">
@@ -200,10 +190,9 @@ export function NfeTab() {
             </div>
             <div className="space-y-2">
               <Label>Valor Bruto (R$)</Label>
-              <Input
-                type="number"
-                value={formData.grossValue || ''}
-                onChange={(e) => setFormData({ ...formData, grossValue: Number(e.target.value) })}
+              <CurrencyInput
+                value={formData.grossValue}
+                onChange={(val: number) => setFormData({ ...formData, grossValue: val })}
               />
             </div>
             <div className="space-y-2">

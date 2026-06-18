@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T02:30:53.364Z",
+  "generatedAt": "2026-06-18T02:45:17.301Z",
   "collections": [
     {
       "name": "users",
@@ -234,6 +234,90 @@
         },
         {
           "name": "guardian_observations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_logradouro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "billing_pais",
           "type": "text",
           "required": false,
           "system": false
@@ -1290,6 +1374,48 @@
         {
           "name": "assinatura_padrao",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pais",
+          "type": "text",
           "required": false,
           "system": false
         }
