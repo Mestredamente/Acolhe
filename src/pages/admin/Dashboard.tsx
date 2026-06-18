@@ -240,11 +240,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      <div className="bg-slate-50 border border-slate-200 p-4 rounded-md flex items-start gap-3">
-        <ShieldAlert className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
-        <div className="text-sm text-slate-700">
-          <strong>Dashboard do Gestor SaaS — dados sensíveis de negócio.</strong> Acesso restrito a
-          administradores da plataforma. Conformidade LGPD na gestão de dados de tenant.
+      <div className="bg-slate-50 border border-slate-200 p-4 rounded-md flex flex-col gap-2">
+        <div className="flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-slate-700">
+            <strong>Dashboard do Gestor SaaS — dados sensíveis de negócio.</strong> Acesso restrito
+            a administradores da plataforma. Conformidade LGPD na gestão de dados de tenant.
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <Activity className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-slate-700">
+            <strong>Visualizar como</strong> permite testar a jornada do usuário sem logout. Dados
+            de paciente são sempre fictícios para o gestor da plataforma. Ações são registradas para
+            auditoria. Nenhum dado real é exposto.
+          </div>
         </div>
       </div>
 

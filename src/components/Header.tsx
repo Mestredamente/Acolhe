@@ -5,9 +5,23 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ImpersonateDialog } from '@/components/ImpersonateDialog'
+import { useState } from 'react'
+import { Eye, LogOut } from 'lucide-react'
 
 export function Header() {
-  const { user } = useAuth()
+  const { user, realUser, signOut, stopImpersonation, isDemonstrationMode, impersonatedUser } =
+    useAuth()
+  const [impersonateOpen, setImpersonateOpen] = useState(false)
+
   const isPaciente = user?.profile === 'paciente'
   const isSecretaria = user?.profile === 'secretaria'
 
@@ -36,28 +50,65 @@ export function Header() {
       </div>
       <div className="flex items-center gap-4">
         <NotificationsPopover />
-        <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
-          <div className="flex flex-col items-end hidden sm:flex">
-            <span className="text-sm font-semibold text-slate-900">{user?.name || 'Usuário'}</span>
-            <span className="text-xs text-slate-500">{getRoleName()}</span>
-          </div>
-          <Avatar className="h-10 w-10 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-            <AvatarImage
-              src={
-                user?.avatar_url
-                  ? pb.files.getUrl(user, user.avatar_url)
-                  : user?.avatar
-                    ? pb.files.getUrl(user, user.avatar)
-                    : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
-              }
-              alt={user?.name || 'User'}
-            />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {user?.name?.substring(0, 2).toUpperCase() || 'US'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-3 border-l border-slate-200 pl-4 cursor-pointer hover:bg-slate-50 p-1 rounded-md transition-colors">
+              <div className="flex flex-col items-end hidden sm:flex">
+                <span className="text-sm font-semibold text-slate-900">
+                  {user?.name || 'Usuário'}
+                </span>
+                <span className="text-xs text-slate-500">{getRoleName()}</span>
+              </div>
+              <Avatar className="h-10 w-10 border border-slate-200 shadow-sm">
+                <AvatarImage
+                  src={
+                    user?.avatar_url
+                      ? pb.files.getUrl(user, user.avatar_url)
+                      : user?.avatar
+                        ? pb.files.getUrl(user, user.avatar)
+                        : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+                  }
+                  alt={user?.name || 'User'}
+                />
+                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                  {user?.name?.substring(0, 2).toUpperCase() || 'US'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            {impersonatedUser && (
+              <DropdownMenuItem
+                onClick={stopImpersonation}
+                className="text-amber-600 font-medium cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 mr-2" /> Encerrar Visualização
+              </DropdownMenuItem>
+            )}
+
+            {!impersonatedUser &&
+              realUser?.profile !== 'secretaria' &&
+              realUser?.profile !== 'paciente' && (
+                <DropdownMenuItem
+                  onClick={() => setImpersonateOpen(true)}
+                  className="cursor-pointer"
+                >
+                  <Eye className="w-4 h-4 mr-2" /> Visualizar como...
+                </DropdownMenuItem>
+              )}
+
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="text-red-600 cursor-pointer">
+              <LogOut className="w-4 h-4 mr-2" /> Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      <ImpersonateDialog open={impersonateOpen} onOpenChange={setImpersonateOpen} />
     </header>
   )
 }

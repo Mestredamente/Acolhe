@@ -10,6 +10,12 @@ interface AuthContextType {
   verify2FA: (code: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
+  realUser: any
+  impersonatedUser: any
+  impersonatedPatient: any
+  isDemonstrationMode: boolean
+  startImpersonation: (type: 'user' | 'patient', target: any) => Promise<void>
+  stopImpersonation: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,6 +29,17 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
   const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
+  const [impersonatedUser, setImpersonatedUser] = useState<any>(() => {
+    const stored = sessionStorage.getItem('impersonated_user')
+    return stored ? JSON.parse(stored) : null
+  })
+  const [impersonatedPatient, setImpersonatedPatient] = useState<any>(() => {
+    const stored = sessionStorage.getItem('impersonated_patient')
+    return stored ? JSON.parse(stored) : null
+  })
+  const [impersonationId, setImpersonationId] = useState<string | null>(() => {
+    return sessionStorage.getItem('impersonation_id')
+  })
   const [is2FAVerified, setIs2FAVerified] = useState<boolean>(() => {
     return sessionStorage.getItem('2fa_verified') === 'true'
   })
@@ -123,6 +140,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = () => {
     const userId = pb.authStore.record?.id
+    setImpersonatedUser(null)
+    setImpersonatedPatient(null)
+    setImpersonationId(null)
+    sessionStorage.removeItem('impersonated_user')
+    sessionStorage.removeItem('impersonated_patient')
+    sessionStorage.removeItem('impersonation_id')
     if (userId) {
       import('@/services/audit_logs')
         .then((m) =>
@@ -145,9 +168,104 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const startImpersonation = async (type: 'user' | 'patient', target: any) => {
+    try {
+      let perfil = type === 'user' ? target.profile : 'paciente'
+      const isSaaSAdmin = user?.profile === 'admin'
+      const dados_ficticios = isSaaSAdmin && type === 'user'
+
+      const visRecord = await pb.collection('visualizacoes_impersonate').create({
+        usuario_admin_id: user.id,
+        perfil_visualizado: perfil,
+        clinica_id: target.id_clinica || target.expand?.id_clinica?.id || null,
+        patient_id: type === 'patient' ? target.id : null,
+        dados_ficticios,
+        data_inicio: new Date().toISOString(),
+      })
+
+      await import('@/services/audit_logs').then((m) =>
+        m.createAuditLog({
+          usuario_id: user.id,
+          acao: 'leitura',
+          tabela_afetada: type === 'user' ? 'users' : 'patients',
+          registro_id: target.id,
+          descricao: `Iniciou impersonation como ${perfil} (${target.name || target.nome})`,
+        }),
+      )
+
+      setImpersonationId(visRecord.id)
+      sessionStorage.setItem('impersonation_id', visRecord.id)
+
+      if (type === 'user') {
+        setImpersonatedUser(target)
+        sessionStorage.setItem('impersonated_user', JSON.stringify(target))
+      } else {
+        setImpersonatedPatient(target)
+        sessionStorage.setItem('impersonated_patient', JSON.stringify(target))
+      }
+
+      window.location.href = type === 'patient' ? '/portal/dashboard' : '/'
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const stopImpersonation = async () => {
+    try {
+      if (impersonationId) {
+        await pb
+          .collection('visualizacoes_impersonate')
+          .update(impersonationId, {
+            data_fim: new Date().toISOString(),
+          })
+          .catch(console.error)
+      }
+
+      await import('@/services/audit_logs')
+        .then((m) =>
+          m.createAuditLog({
+            usuario_id: user.id,
+            acao: 'leitura',
+            tabela_afetada: 'visualizacoes_impersonate',
+            descricao: `Encerrou impersonation`,
+          }),
+        )
+        .catch(console.error)
+
+      setImpersonatedUser(null)
+      setImpersonatedPatient(null)
+      setImpersonationId(null)
+      sessionStorage.removeItem('impersonated_user')
+      sessionStorage.removeItem('impersonated_patient')
+      sessionStorage.removeItem('impersonation_id')
+
+      window.location.href = '/'
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const effectiveUser = impersonatedUser || user
+  const isDemonstrationMode = user?.profile === 'admin' && impersonatedUser != null
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, is2FAVerified, signUp, signIn, verify2FA, signOut, loading }}
+      value={{
+        user: effectiveUser,
+        realUser: user,
+        isAuthenticated,
+        is2FAVerified,
+        signUp,
+        signIn,
+        verify2FA,
+        signOut,
+        loading,
+        impersonatedUser,
+        impersonatedPatient,
+        isDemonstrationMode,
+        startImpersonation,
+        stopImpersonation,
+      }}
     >
       {children}
     </AuthContext.Provider>
