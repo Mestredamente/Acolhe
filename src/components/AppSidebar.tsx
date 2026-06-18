@@ -11,6 +11,7 @@ import {
   Shield,
   LifeBuoy,
   Server,
+  Building2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -58,6 +59,12 @@ export function AppSidebar() {
     },
     { name: 'Prontuários', href: '/prontuarios', icon: FileText, roles: ['psicologo', 'admin'] },
     { name: 'Financeiro', href: '/financeiro', icon: DollarSign, roles: ['psicologo', 'admin'] },
+    {
+      name: 'Clínicas',
+      href: '/clinicas',
+      icon: Building2,
+      roles: ['admin'],
+    },
     {
       name: 'Gestão de Usuários',
       href: '/configuracoes?tab=users',

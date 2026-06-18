@@ -16,6 +16,8 @@ import AutomacoesList from './pages/automacoes/Index'
 import InsightsList from './pages/insights/Index'
 import JornadaControl from './pages/jornada/Index'
 import ModulosList from './pages/modulos/Index'
+import ClinicasList from './pages/clinicas/Index'
+import ClinicaDetails from './pages/clinicas/Details'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -78,6 +80,8 @@ const App = () => (
               <Route path="/relatorios" element={<RelatoriosList />} />
               <Route path="/automacoes" element={<AutomacoesList />} />
               <Route path="/insights" element={<InsightsList />} />
+              <Route path="/clinicas" element={<ClinicasList />} />
+              <Route path="/clinicas/:id" element={<ClinicaDetails />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
               <Route path="/jornada" element={<JornadaControl />} />

@@ -40,6 +40,7 @@ export interface Patient {
   created: string
   updated: string
   user_id: string
+  id_clinica?: string
 }
 
 export const getPatients = () =>

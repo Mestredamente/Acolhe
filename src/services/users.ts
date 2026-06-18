@@ -9,6 +9,7 @@ export interface User {
   onboarding_completo?: boolean
   dois_fa_ativo?: boolean
   codigo_verificacao?: string
+  id_clinica?: string
   created: string
 }
 

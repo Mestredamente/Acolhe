@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T03:21:22.665Z",
+  "generatedAt": "2026-06-18T03:29:34.011Z",
   "collections": [
     {
       "name": "users",
@@ -69,6 +69,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "id_clinica",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clinicas"
         }
       ],
       "indexes": [
@@ -80,8 +87,8 @@
       "name": "patients",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || email = @request.auth.email || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || email = @request.auth.email || user_id = @request.auth.id)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -321,6 +328,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "id_clinica",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clinicas"
         }
       ],
       "indexes": []
@@ -329,8 +343,8 @@
       "name": "appointments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || patient_id.email = @request.auth.email || user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || patient_id.email = @request.auth.email || user_id = @request.auth.id)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -430,8 +444,8 @@
       "name": "evolucoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && user_id = @request.auth.id",
-        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -686,8 +700,8 @@
       "name": "financeiro",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && (user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || patient_id.email = @request.auth.email || patient_id.user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -869,8 +883,8 @@
       "name": "documentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente'))",
-        "view": "@request.auth.id != '' && (user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente'))",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -1102,8 +1116,8 @@
       "name": "mensagens",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email)",
-        "view": "@request.auth.id != '' && (sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email)",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || sender_id = @request.auth.id || recipient_id = @request.auth.id || patient_id.user_id = @request.auth.id || patient_id.email = @request.auth.email || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && recipient_id = @request.auth.id",
         "delete": null
@@ -1890,6 +1904,114 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "clinicas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || id = @request.auth.id_clinica)",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || id = @request.auth.id_clinica)",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ativa", "inativa"]
+        },
+        {
+          "name": "admin_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         },
         {
           "name": "created",

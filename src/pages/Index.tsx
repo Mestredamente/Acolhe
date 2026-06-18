@@ -11,12 +11,16 @@ import {
   AlertCircle,
   MessageSquare,
   User,
+  Building2,
 } from 'lucide-react'
 import { getAppointments } from '@/services/appointments'
 import { getPatients } from '@/services/patients'
 import { getTransactions } from '@/services/financeiro'
 import { getAllDiarios } from '@/services/diario'
 import { getAllPendingRespostas } from '@/services/escalas'
+import { getClinicas } from '@/services/clinicas'
+import { getUsers } from '@/services/users'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -36,11 +40,17 @@ interface PredictiveAlert {
 }
 
 export default function Index() {
+  const { user } = useAuth()
+  const isAdmin = user?.profile === 'admin'
+
   const [stats, setStats] = useState({
     patientsCount: 0,
     appointmentsToday: 0,
     revenueMonth: 0,
     pendingTasks: 0,
+    activeClinics: 0,
+    linkedProfessionals: 0,
+    topClinicName: '',
   })
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState<PredictiveAlert[]>([])
@@ -50,15 +60,16 @@ export default function Index() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [patients, appointments, transactions, diarios, escalasPendentes] = await Promise.all(
-          [
+        const [patients, appointments, transactions, diarios, escalasPendentes, clinicas, users] =
+          await Promise.all([
             getPatients(),
             getAppointments(),
             getTransactions(),
             getAllDiarios().catch(() => []),
             getAllPendingRespostas().catch(() => []),
-          ],
-        )
+            isAdmin ? getClinicas().catch(() => []) : Promise.resolve([]),
+            isAdmin ? getUsers().catch(() => []) : Promise.resolve([]),
+          ])
 
         const todayDate = new Date()
         const today = todayDate.toISOString().split('T')[0]
@@ -74,11 +85,28 @@ export default function Index() {
           )
           .reduce((acc, curr) => acc + (curr.amount || 0), 0)
 
+        let topClinicName = '-'
+        if (isAdmin && clinicas.length > 0 && patients.length > 0) {
+          const counts: Record<string, number> = {}
+          patients.forEach((p) => {
+            if (p.id_clinica) counts[p.id_clinica] = (counts[p.id_clinica] || 0) + 1
+          })
+          const topClinicId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]
+          if (topClinicId) {
+            topClinicName = clinicas.find((c) => c.id === topClinicId)?.nome || '-'
+          }
+        }
+
         setStats({
           patientsCount: patients.length || 12,
           appointmentsToday: todayAppointments.length || 4,
           revenueMonth: revenue || 4500,
           pendingTasks: 3,
+          activeClinics: clinicas.filter((c) => c.status === 'ativa').length || 0,
+          linkedProfessionals:
+            users.filter((u) => u.id_clinica && ['psicologo', 'secretaria'].includes(u.profile))
+              .length || 0,
+          topClinicName,
         })
 
         // Generate Predictive Alerts
@@ -333,6 +361,44 @@ export default function Index() {
         <h1>Dashboard</h1>
         <p className="text-muted-foreground mt-1">Visão geral do seu consultório.</p>
       </div>
+
+      {isAdmin && (
+        <div className="grid gap-6 md:grid-cols-3 mb-6 animate-fade-in-up">
+          <Card className="standard-card border-none shadow-elevation bg-primary text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-primary-foreground/80">
+                Clínicas Ativas
+              </CardTitle>
+              <Building2 className="h-4 w-4 text-primary-foreground/80" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeClinics}</div>
+            </CardContent>
+          </Card>
+          <Card className="standard-card border-none shadow-elevation bg-blue-800 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-primary-foreground/80">
+                Profissionais Vinculados
+              </CardTitle>
+              <Users className="h-4 w-4 text-primary-foreground/80" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.linkedProfessionals}</div>
+            </CardContent>
+          </Card>
+          <Card className="standard-card border-none shadow-elevation bg-slate-900 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-primary-foreground/80">
+                Clínica Destaque (Pacientes)
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-primary-foreground/80" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold truncate">{stats.topClinicName}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="standard-card border-none shadow-elevation">
