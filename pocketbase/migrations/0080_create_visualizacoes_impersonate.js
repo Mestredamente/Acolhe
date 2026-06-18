@@ -1,5 +1,8 @@
 migrate(
   (app) => {
+    const clinicasCol = app.findCollectionByNameOrId('clinicas')
+    const patientsCol = app.findCollectionByNameOrId('patients')
+
     const collection = new Collection({
       name: 'visualizacoes_impersonate',
       type: 'base',
@@ -28,14 +31,14 @@ migrate(
           name: 'clinica_id',
           type: 'relation',
           required: false,
-          collectionId: 'clinicas',
+          collectionId: clinicasCol.id,
           maxSelect: 1,
         },
         {
           name: 'patient_id',
           type: 'relation',
           required: false,
-          collectionId: 'patients',
+          collectionId: patientsCol.id,
           maxSelect: 1,
         },
         { name: 'dados_ficticios', type: 'bool', required: false },
