@@ -24,6 +24,7 @@ import { Appointment } from '@/services/appointments'
 import { createEvolucao, updateEvolucao, Evolucao } from '@/services/evolucoes'
 import { useToast } from '@/hooks/use-toast'
 import { AiValidationModal } from '@/components/AiValidationModal'
+import { isRecordLocked } from '@/lib/compliance'
 
 interface Props {
   patientId: string
@@ -58,6 +59,8 @@ export function EvolutionFormDialog({
 
   const [pendingAiContent, setPendingAiContent] = useState('')
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false)
+
+  const isLocked = isRecordLocked(evolution?.created)
 
   useEffect(() => {
     if (open) {
@@ -242,6 +245,16 @@ export function EvolutionFormDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {isLocked && (
+            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md flex items-start gap-2 mt-2">
+              <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <strong>Prontuário fechado.</strong> Edição bloqueada após 24 horas do registro.
+                Conforme CFP.
+              </div>
+            </div>
+          )}
+
           <div className="space-y-6 py-4">
             {!consentimentoIaAceito && (
               <div className="bg-red-50 text-red-800 p-3 rounded-md flex items-start gap-2 border border-red-200 text-sm">
@@ -255,7 +268,7 @@ export function EvolutionFormDialog({
 
             <div className="space-y-2">
               <Label>Sessão Relacionada</Label>
-              <Select value={appointmentId} onValueChange={setAppointmentId}>
+              <Select value={appointmentId} onValueChange={setAppointmentId} disabled={isLocked}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a sessão" />
                 </SelectTrigger>
@@ -292,7 +305,7 @@ export function EvolutionFormDialog({
                       variant="outline"
                       size="sm"
                       onClick={handleSimulateRecording}
-                      disabled={isRecording || isTranscribing}
+                      disabled={isRecording || isTranscribing || isLocked}
                       className={
                         isRecording
                           ? 'text-teal-700 animate-pulse border-teal-700 bg-teal-50'
@@ -313,7 +326,9 @@ export function EvolutionFormDialog({
                         variant="secondary"
                         size="sm"
                         onClick={handleSimulateTranscription}
-                        disabled={isTranscribing || isRecording || !consentimentoIaAceito}
+                        disabled={
+                          isTranscribing || isRecording || !consentimentoIaAceito || isLocked
+                        }
                         className="bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50"
                       >
                         {' '}
@@ -356,6 +371,7 @@ export function EvolutionFormDialog({
                   placeholder="Digite as observações clínicas aqui..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
+                  disabled={isLocked}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   A transcrição é automatizada para auxiliar no registro. Revise o conteúdo antes de
@@ -372,7 +388,7 @@ export function EvolutionFormDialog({
                   variant="secondary"
                   size="sm"
                   onClick={handleSimulateAI}
-                  disabled={isGeneratingSummary || !content || !consentimentoIaAceito}
+                  disabled={isGeneratingSummary || !content || !consentimentoIaAceito || isLocked}
                 >
                   {isGeneratingSummary ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -387,6 +403,7 @@ export function EvolutionFormDialog({
                 placeholder="O resumo gerado pela IA aparecerá aqui..."
                 value={aiSummary}
                 onChange={(e) => setAiSummary(e.target.value)}
+                disabled={isLocked}
               />
             </div>
 
@@ -395,6 +412,7 @@ export function EvolutionFormDialog({
                 id="is_signed"
                 checked={isSigned}
                 onCheckedChange={(checked) => setIsSigned(checked as boolean)}
+                disabled={isLocked}
               />
               <div className="grid gap-1.5 leading-none">
                 <label
@@ -414,10 +432,12 @@ export function EvolutionFormDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Salvar Evolução
-            </Button>
+            {!isLocked && (
+              <Button onClick={handleSave} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Salvar Evolução
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

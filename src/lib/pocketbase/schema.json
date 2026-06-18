@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T04:38:20.976Z",
+  "generatedAt": "2026-06-18T04:45:25.682Z",
   "collections": [
     {
       "name": "users",
@@ -2734,6 +2734,144 @@
           "name": "versao_termo",
           "type": "text",
           "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_aceite",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "deleted_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "termos_versionamento",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["termos_de_servico", "politica_privacidade"]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_publicacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["rascunho", "ativo", "arquivado"]
+        },
+        {
+          "name": "obrigatorio",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "deleted_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "aceites_termos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.profile = 'admin')",
+        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.profile = 'admin')",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "termo_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "termos_versionamento"
+        },
+        {
+          "name": "data_aceite",
+          "type": "date",
+          "required": true,
           "system": false
         },
         {

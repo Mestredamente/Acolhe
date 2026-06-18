@@ -75,6 +75,12 @@ export function AppSidebar() {
       roles: ['admin'],
     },
     {
+      name: 'Termos e Privacidade',
+      href: '/admin/termos',
+      icon: FileText,
+      roles: ['admin'],
+    },
+    {
       name: 'Clínicas',
       href: '/clinicas',
       icon: Building2,

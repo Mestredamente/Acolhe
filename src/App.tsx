@@ -33,6 +33,8 @@ import NotificacoesList from './pages/notificacoes/Index'
 import { PortalOnboarding } from './pages/portal/Onboarding'
 import { GlobalOnboarding } from './components/GlobalOnboarding'
 import SuportePage from './pages/suporte/Index'
+import TermosPrivacidade from './pages/admin/Termos'
+import { TermosAcceptanceModal } from './components/TermosAcceptanceModal'
 
 const App = () => (
   <AuthProvider>
@@ -46,7 +48,14 @@ const App = () => (
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal/convite/:token" element={<PortalOnboarding />} />
           <Route element={<PortalProtectedRoute />}>
-            <Route element={<PortalLayout />}>
+            <Route
+              element={
+                <>
+                  <TermosAcceptanceModal />
+                  <PortalLayout />
+                </>
+              }
+            >
               <Route path="/portal" element={<PortalDashboard />} />
               <Route path="/portal/dados" element={<PortalDashboard />} />
               <Route path="/portal/atendimentos" element={<PortalDashboard />} />
@@ -64,6 +73,7 @@ const App = () => (
             <Route
               element={
                 <>
+                  <TermosAcceptanceModal />
                   <GlobalOnboarding />
                   <Layout />
                 </>
@@ -71,6 +81,7 @@ const App = () => (
             >
               <Route path="/" element={<Index />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/termos" element={<TermosPrivacidade />} />
               <Route path="/secretaria/dashboard" element={<SecretaryDashboard />} />
               <Route path="/mensagens" element={<MensagensList />} />
               <Route path="/pacientes" element={<PacientesList />} />

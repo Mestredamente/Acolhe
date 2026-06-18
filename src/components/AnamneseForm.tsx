@@ -9,8 +9,9 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Save, X } from 'lucide-react'
+import { Save, X, AlertCircle } from 'lucide-react'
 import { Anamnese } from '@/services/anamneses'
+import { isRecordLocked } from '@/lib/compliance'
 
 interface Props {
   initialData: Partial<Anamnese>
@@ -23,12 +24,27 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
     defaultValues: { approach: 'Geral', ...initialData },
   })
   const watchApproach = form.watch('approach')
+  const isLocked = isRecordLocked(initialData.created)
 
   return (
     <form onSubmit={form.handleSubmit(onSave)} className="space-y-6 animate-fade-in">
+      {isLocked && (
+        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md flex items-start gap-2 mb-4">
+          <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-yellow-800">
+            <strong>Prontuário fechado.</strong> Edição bloqueada após 24 horas do registro.
+            Conforme CFP.
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label>Abordagem Clínica</Label>
-        <Select value={watchApproach} onValueChange={(val) => form.setValue('approach', val)}>
+        <Select
+          value={watchApproach}
+          onValueChange={(val) => form.setValue('approach', val)}
+          disabled={isLocked}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecione a abordagem" />
           </SelectTrigger>
@@ -46,47 +62,47 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Queixa Principal</Label>
-          <Textarea {...form.register('complaint')} />
+          <Textarea {...form.register('complaint')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Motivo da Consulta</Label>
-          <Textarea {...form.register('consultation_reason')} />
+          <Textarea {...form.register('consultation_reason')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Expectativas do Tratamento</Label>
-          <Textarea {...form.register('treatment_expectations')} />
+          <Textarea {...form.register('treatment_expectations')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Histórico Familiar</Label>
-          <Textarea {...form.register('family_history')} />
+          <Textarea {...form.register('family_history')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Histórico Médico</Label>
-          <Textarea {...form.register('medical_history')} />
+          <Textarea {...form.register('medical_history')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Antecedentes Psiquiátricos Familiares</Label>
-          <Textarea {...form.register('family_psych_history')} />
+          <Textarea {...form.register('family_psych_history')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Medicamentos</Label>
-          <Textarea {...form.register('medications')} />
+          <Textarea {...form.register('medications')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Uso de Substâncias</Label>
-          <Textarea {...form.register('substance_use')} />
+          <Textarea {...form.register('substance_use')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Internações</Label>
-          <Textarea {...form.register('hospitalizations')} />
+          <Textarea {...form.register('hospitalizations')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Ideação Suicida Passada</Label>
-          <Textarea {...form.register('suicidal_ideation_past')} />
+          <Textarea {...form.register('suicidal_ideation_past')} disabled={isLocked} />
         </div>
         <div className="space-y-2">
           <Label>Tentativas de Suicídio</Label>
-          <Textarea {...form.register('suicide_attempts')} />
+          <Textarea {...form.register('suicide_attempts')} disabled={isLocked} />
         </div>
       </div>
 
@@ -96,15 +112,15 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Pensamentos Automáticos</Label>
-              <Textarea {...form.register('tcc_automatic_thoughts')} />
+              <Textarea {...form.register('tcc_automatic_thoughts')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>Crenças Nucleares</Label>
-              <Textarea {...form.register('tcc_core_beliefs')} />
+              <Textarea {...form.register('tcc_core_beliefs')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>Comorbidades</Label>
-              <Textarea {...form.register('tcc_comorbidities')} />
+              <Textarea {...form.register('tcc_comorbidities')} disabled={isLocked} />
             </div>
           </div>
         </div>
@@ -116,15 +132,15 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Dinâmica Familiar</Label>
-              <Textarea {...form.register('psycho_family_dynamics')} />
+              <Textarea {...form.register('psycho_family_dynamics')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>Relatos de Sonhos</Label>
-              <Textarea {...form.register('psycho_dream_reports')} />
+              <Textarea {...form.register('psycho_dream_reports')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>História de Desenvolvimento</Label>
-              <Textarea {...form.register('psycho_dev_history')} />
+              <Textarea {...form.register('psycho_dev_history')} disabled={isLocked} />
             </div>
           </div>
         </div>
@@ -136,15 +152,15 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Autoconceito</Label>
-              <Textarea {...form.register('humanist_self_concept')} />
+              <Textarea {...form.register('humanist_self_concept')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>Recursos Pessoais</Label>
-              <Textarea {...form.register('humanist_personal_resources')} />
+              <Textarea {...form.register('humanist_personal_resources')} disabled={isLocked} />
             </div>
             <div className="space-y-2">
               <Label>Rede de Apoio</Label>
-              <Textarea {...form.register('humanist_support_network')} />
+              <Textarea {...form.register('humanist_support_network')} disabled={isLocked} />
             </div>
           </div>
         </div>
@@ -152,16 +168,18 @@ export function AnamneseForm({ initialData, onSave, onCancel }: Props) {
 
       <div className="space-y-2">
         <Label>Observações Gerais</Label>
-        <Textarea {...form.register('general_observations')} />
+        <Textarea {...form.register('general_observations')} disabled={isLocked} />
       </div>
 
       <div className="flex gap-2 justify-end pt-4">
         <Button variant="outline" type="button" onClick={onCancel}>
-          <X className="w-4 h-4 mr-2" /> Cancelar
+          <X className="w-4 h-4 mr-2" /> {isLocked ? 'Voltar' : 'Cancelar'}
         </Button>
-        <Button type="submit">
-          <Save className="w-4 h-4 mr-2" /> Salvar Anamnese
-        </Button>
+        {!isLocked && (
+          <Button type="submit">
+            <Save className="w-4 h-4 mr-2" /> Salvar Anamnese
+          </Button>
+        )}
       </div>
     </form>
   )
