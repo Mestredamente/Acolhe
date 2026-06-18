@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Shield,
   LifeBuoy,
+  Server,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -68,6 +69,12 @@ export function AppSidebar() {
       href: '/configuracoes',
       icon: Settings,
       roles: ['psicologo', 'admin', 'secretaria'],
+    },
+    {
+      name: 'Módulos do Sistema',
+      href: '/modulos',
+      icon: Server,
+      roles: ['admin'],
     },
     { name: 'Suporte', href: '/suporte', icon: LifeBuoy, roles: ['psicologo', 'admin'] },
   ]
