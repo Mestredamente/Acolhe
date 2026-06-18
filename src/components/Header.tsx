@@ -42,6 +42,13 @@ export function Header() {
           )}
           <span>{appName}</span>
         </div>
+        {user?.is_teste && (
+          <div className="hidden lg:flex items-center mr-4">
+            <span className="px-2.5 py-1 bg-blue-50 text-[#1E3A8A] text-xs font-bold rounded uppercase tracking-wide border border-blue-200">
+              Conta de Teste
+            </span>
+          </div>
+        )}
         <div className="relative max-w-md w-full hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -56,8 +63,13 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-3 border-l border-slate-200 pl-4 cursor-pointer hover:bg-slate-50 p-1 rounded-md transition-colors">
               <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-sm font-semibold text-slate-900">
+                <span className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                   {user?.name || 'Usuário'}
+                  {user?.is_teste && (
+                    <span className="lg:hidden px-1.5 py-0.5 bg-blue-50 text-[#1E3A8A] text-[10px] font-bold rounded uppercase border border-blue-200">
+                      Teste
+                    </span>
+                  )}
                 </span>
                 <span className="text-xs text-slate-500">{getRoleName()}</span>
               </div>

@@ -216,7 +216,7 @@ export function PerfilEmpresaTab() {
     />
   )
 
-  const IField = ({ name, label, placeholder, disabled }: any) => (
+  const IField = ({ name, label, placeholder = 'Não configurado', disabled }: any) => (
     <FormField
       control={form.control}
       name={name}

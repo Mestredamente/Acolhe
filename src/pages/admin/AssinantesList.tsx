@@ -18,21 +18,43 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, ShieldAlert, Eye, Settings2 } from 'lucide-react'
-import { getClinicas, Clinica } from '@/services/clinicas'
-import { getUsers, User } from '@/services/users'
-import { getSaasAssinaturasExpanded, SaasAssinatura } from '@/services/saas'
-import { format } from 'date-fns'
+import { Search, ShieldAlert, Settings2 } from 'lucide-react'
+import { format, isValid } from 'date-fns'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 
 interface Subscriber {
   id: string
+  assId: string
   name: string
   type: 'Clínica' | 'Autônomo'
   planName: string
   monthlyValue: number
   status: string
   startDate: string
+  expiryDate: string
   extraInfo: string
+  email?: string
+  phone?: string
+  document?: string
+}
+
+function safelyFormatDate(dateStr: string | undefined | null) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr.replace(' ', 'T'))
+  if (isValid(d)) {
+    return format(d, 'dd/MM/yyyy')
+  }
+  return '-'
 }
 
 export default function AssinantesList() {
@@ -41,104 +63,50 @@ export default function AssinantesList() {
   const [typeFilter, setTypeFilter] = useState('Todos')
   const [statusFilter, setStatusFilter] = useState('Todos')
   const [loading, setLoading] = useState(true)
+  const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const { toast } = useToast()
+
+  const load = async () => {
+    try {
+      const assinaturas = await pb.collection('saas_assinaturas').getFullList({
+        expand: 'id_clinica,user_id,plano_id',
+        sort: '-created',
+      })
+      const mapped: Subscriber[] = assinaturas.map((ass) => {
+        const isClinica = ass.expand?.plano_id?.tipo === 'clinica' || ass.plano === 'clinica'
+        const type = isClinica ? 'Clínica' : 'Autônomo'
+        return {
+          id: ass.id,
+          assId: ass.id,
+          name: ass.expand?.user_id?.name || 'Sem Nome',
+          type,
+          planName: ass.expand?.plano_id?.nome || ass.plano,
+          monthlyValue: ass.valor_mensal || 0,
+          status: ass.status,
+          startDate: safelyFormatDate(ass.data_inicio || ass.created),
+          expiryDate: safelyFormatDate(ass.data_renovacao),
+          extraInfo: isClinica ? 'Gestão de Clínica' : 'Profissional Independente',
+          email: ass.expand?.user_id?.email,
+          document: ass.expand?.id_clinica?.cnpj,
+          phone: ass.expand?.id_clinica?.telefone,
+        }
+      })
+      setSubscribers(mapped)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [clinicas, users, assinaturas] = await Promise.all([
-          getClinicas(),
-          getUsers(),
-          getSaasAssinaturasExpanded().catch(() => [] as SaasAssinatura[]),
-        ])
-
-        const autonomos = users.filter((u) => u.profile === 'psicologo' && !u.id_clinica)
-        const combined: Subscriber[] = []
-
-        clinicas.forEach((c) => {
-          const ass = assinaturas.find((a) => a.id_clinica === c.id)
-          const psychCount = users.filter(
-            (u) => u.id_clinica === c.id && u.profile === 'psicologo',
-          ).length
-          combined.push({
-            id: c.id,
-            name: c.nome || 'Clínica Sem Nome',
-            type: 'Clínica',
-            planName: ass?.expand?.plano_id?.nome || ass?.plano || 'Nenhum',
-            monthlyValue: ass?.valor_mensal || 0,
-            status: ass?.status || c.status || 'inativo',
-            startDate: ass?.data_inicio ? format(new Date(ass.data_inicio), 'dd/MM/yyyy') : '-',
-            extraInfo: `${psychCount} psicólogo(s)`,
-          })
-        })
-
-        autonomos.forEach((u) => {
-          const ass = assinaturas.find((a) => a.user_id === u.id)
-          combined.push({
-            id: u.id,
-            name: u.name || 'Sem Nome',
-            type: 'Autônomo',
-            planName: ass?.expand?.plano_id?.nome || ass?.plano || 'Nenhum',
-            monthlyValue: ass?.valor_mensal || 0,
-            status: ass?.status || u.status || 'inativo',
-            startDate: ass?.data_inicio ? format(new Date(ass.data_inicio), 'dd/MM/yyyy') : '-',
-            extraInfo: `Autônomo`,
-          })
-        })
-
-        if (combined.length === 0) {
-          combined.push(
-            {
-              id: 'c1',
-              name: 'Clínica Mente Saudável',
-              type: 'Clínica',
-              planName: 'Professional',
-              monthlyValue: 399,
-              status: 'ativo',
-              startDate: '10/01/2023',
-              extraInfo: '5 psicólogos',
-            },
-            {
-              id: 'c2',
-              name: 'Centro Psicológico Vida',
-              type: 'Clínica',
-              planName: 'Starter',
-              monthlyValue: 199,
-              status: 'trial',
-              startDate: '15/05/2023',
-              extraInfo: '2 psicólogos',
-            },
-            {
-              id: 'a1',
-              name: 'Dr. Autônomo Silva',
-              type: 'Autônomo',
-              planName: 'Profissional',
-              monthlyValue: 99,
-              status: 'ativo',
-              startDate: '20/03/2023',
-              extraInfo: 'CRP: 06/123456',
-            },
-            {
-              id: 'a2',
-              name: 'Dra. Autônoma Souza',
-              type: 'Autônomo',
-              planName: 'Free',
-              monthlyValue: 0,
-              status: 'ativo',
-              startDate: '01/08/2023',
-              extraInfo: 'CRP: 06/654321',
-            },
-          )
-        }
-
-        setSubscribers(combined)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
     load()
   }, [])
+
+  useRealtime('saas_assinaturas', () => {
+    load()
+  })
 
   const filtered = subscribers.filter((s) => {
     if (typeFilter !== 'Todos' && s.type !== typeFilter) return false
@@ -147,6 +115,33 @@ export default function AssinantesList() {
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  const handleStatusChange = async (newStatus: 'ativo' | 'suspenso') => {
+    if (!selectedSubscriber || !selectedSubscriber.assId) return
+
+    try {
+      setUpdating(true)
+      await pb
+        .collection('saas_assinaturas')
+        .update(selectedSubscriber.assId, { status: newStatus })
+
+      setSelectedSubscriber({ ...selectedSubscriber, status: newStatus })
+
+      toast({
+        title: 'Sucesso',
+        description: `Assinatura ${newStatus === 'ativo' ? 'reativada' : 'suspensa'} com sucesso.`,
+      })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status da assinatura.',
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in pb-10 max-w-[1200px] mx-auto">
@@ -198,8 +193,7 @@ export default function AssinantesList() {
                   <SelectItem value="Todos">Todos os Status</SelectItem>
                   <SelectItem value="ativo">Ativo</SelectItem>
                   <SelectItem value="trial">Trial</SelectItem>
-                  <SelectItem value="inativo">Inativo</SelectItem>
-                  <SelectItem value="inadimplente">Inadimplente</SelectItem>
+                  <SelectItem value="suspenso">Suspenso</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
@@ -215,6 +209,7 @@ export default function AssinantesList() {
                   <TableHead>Plano Atual</TableHead>
                   <TableHead>Mensalidade</TableHead>
                   <TableHead>Início</TableHead>
+                  <TableHead>Vencimento</TableHead>
                   <TableHead>Info Extra</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -236,7 +231,7 @@ export default function AssinantesList() {
                         {sub.type}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-slate-600">{sub.planName}</TableCell>
+                    <TableCell className="text-slate-600 capitalize">{sub.planName}</TableCell>
                     <TableCell className="font-medium text-slate-700">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
@@ -244,6 +239,7 @@ export default function AssinantesList() {
                       }).format(sub.monthlyValue)}
                     </TableCell>
                     <TableCell className="text-slate-500">{sub.startDate}</TableCell>
+                    <TableCell className="text-slate-500">{sub.expiryDate}</TableCell>
                     <TableCell className="text-sm text-slate-500">{sub.extraInfo}</TableCell>
                     <TableCell>
                       <Badge
@@ -262,7 +258,8 @@ export default function AssinantesList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-slate-500 hover:text-[#1E3A8A]"
+                        className="text-slate-500 hover:text-[#1E3A8A] hover:bg-blue-50 transition-colors"
+                        onClick={() => setSelectedSubscriber(sub)}
                       >
                         <Settings2 className="w-4 h-4 mr-2" /> Gerenciar
                       </Button>
@@ -271,14 +268,14 @@ export default function AssinantesList() {
                 ))}
                 {filtered.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Nenhum assinante encontrado.
                     </TableCell>
                   </TableRow>
                 )}
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Carregando...
                     </TableCell>
                   </TableRow>
@@ -288,6 +285,115 @@ export default function AssinantesList() {
           </div>
         </CardContent>
       </Card>
+
+      <Sheet
+        open={!!selectedSubscriber}
+        onOpenChange={(open) => !open && setSelectedSubscriber(null)}
+      >
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Gerenciar Assinante</SheetTitle>
+            <SheetDescription>Detalhes e ações administrativas para a conta</SheetDescription>
+          </SheetHeader>
+
+          {selectedSubscriber && (
+            <div className="mt-6 space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                  Informações Gerais
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-slate-500">Nome</Label>
+                    <p className="font-medium text-sm mt-1">{selectedSubscriber.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Tipo</Label>
+                    <p className="font-medium text-sm mt-1">{selectedSubscriber.type}</p>
+                  </div>
+                  {selectedSubscriber.document && (
+                    <div>
+                      <Label className="text-xs text-slate-500">Documento</Label>
+                      <p className="font-medium text-sm mt-1">{selectedSubscriber.document}</p>
+                    </div>
+                  )}
+                  {selectedSubscriber.email && (
+                    <div className="col-span-2">
+                      <Label className="text-xs text-slate-500">E-mail</Label>
+                      <p className="font-medium text-sm mt-1">{selectedSubscriber.email}</p>
+                    </div>
+                  )}
+                  {selectedSubscriber.phone && (
+                    <div>
+                      <Label className="text-xs text-slate-500">Telefone</Label>
+                      <p className="font-medium text-sm mt-1">{selectedSubscriber.phone}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                  Assinatura SaaS
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-slate-500">Plano Atual</Label>
+                    <p className="font-medium text-sm mt-1 capitalize">
+                      {selectedSubscriber.planName}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Status</Label>
+                    <p className="font-medium text-sm mt-1 capitalize">
+                      {selectedSubscriber.status}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Início</Label>
+                    <p className="font-medium text-sm mt-1">{selectedSubscriber.startDate}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Vencimento</Label>
+                    <p className="font-medium text-sm mt-1">{selectedSubscriber.expiryDate}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Mensalidade</Label>
+                    <p className="font-medium text-sm mt-1">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(selectedSubscriber.monthlyValue)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t pt-4">
+                {selectedSubscriber.status === 'ativo' ? (
+                  <Button
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    variant="ghost"
+                    onClick={() => handleStatusChange('suspenso')}
+                    disabled={updating}
+                  >
+                    {updating ? 'Aguarde...' : 'Suspender Assinatura'}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                    variant="ghost"
+                    onClick={() => handleStatusChange('ativo')}
+                    disabled={updating}
+                  >
+                    {updating ? 'Aguarde...' : 'Reativar Assinatura'}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

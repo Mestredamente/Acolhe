@@ -345,7 +345,7 @@ export function AppSidebar() {
           <span className="text-sm font-semibold text-slate-900 truncate flex items-center gap-2">
             <span className="truncate">{user?.name || 'Usuário'}</span>
             {user?.is_teste && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 leading-none shrink-0">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#1E3A8A] border border-blue-200 leading-none shrink-0">
                 TESTE
               </span>
             )}

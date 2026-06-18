@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T21:14:33.962Z",
+  "generatedAt": "2026-06-18T22:50:13.629Z",
   "collections": [
     {
       "name": "users",
@@ -43,7 +43,14 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "psicologo", "secretaria", "paciente"]
+          "selectValues": [
+            "admin",
+            "psicologo",
+            "secretaria",
+            "paciente",
+            "gestor_saas",
+            "owner_clinica"
+          ]
         },
         {
           "name": "status",
@@ -3088,8 +3095,8 @@
       "name": "saas_planos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "",
+        "view": "",
         "create": "@request.auth.profile = 'admin'",
         "update": "@request.auth.profile = 'admin'",
         "delete": "@request.auth.profile = 'admin'"

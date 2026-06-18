@@ -59,13 +59,17 @@ export default function AssinaturasAtivas() {
             customer = users.find((u) => u.id === a.user_id)?.name || 'Autônomo'
             type = 'Autônomo'
           }
+
+          const startDateObj = a.data_inicio ? new Date(a.data_inicio) : null
+          const isValidDate = startDateObj && !isNaN(startDateObj.getTime())
+
           return {
             id: a.id,
             customer,
             type,
             plan: a.expand?.plano_id?.nome || a.plano,
             monthlyValue: a.valor_mensal,
-            nextBilling: format(addMonths(new Date(a.data_inicio), 1), 'dd/MM/yyyy'),
+            nextBilling: isValidDate ? format(addMonths(startDateObj, 1), 'dd/MM/yyyy') : '-',
             paymentStatus:
               a.status === 'ativo' ? 'Pago' : a.status === 'suspenso' ? 'Atrasado' : 'Pendente',
             rawStatus: a.status,

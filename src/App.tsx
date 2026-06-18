@@ -26,6 +26,7 @@ import { Demonstracao } from './pages/admin/Demonstracao'
 import { ContasTeste } from './pages/configuracoes/ContasTeste'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
+import { Register } from './pages/Register'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SecretaryDashboard } from './pages/secretaria/Dashboard'
 import { PortalLogin } from './pages/portal/Login'
@@ -53,12 +54,21 @@ import Sessao from './pages/Sessao'
 
 const App = () => (
   <AuthProvider>
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      body { font-family: 'Inter', sans-serif !important; }
+    `,
+      }}
+    />
     <BrowserRouter>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Register />} />
 
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal/convite/:token" element={<PortalOnboarding />} />
@@ -96,6 +106,11 @@ const App = () => (
               }
             >
               <Route path="/" element={<Index />} />
+              <Route path="/gestor" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/psicologo" element={<Navigate to="/" replace />} />
+              <Route path="/clinica" element={<Navigate to="/" replace />} />
+              <Route path="/secretaria" element={<Navigate to="/secretaria/dashboard" replace />} />
+              <Route path="/paciente" element={<Navigate to="/portal" replace />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/termos" element={<TermosPrivacidade />} />
               <Route path="/secretaria/dashboard" element={<SecretaryDashboard />} />

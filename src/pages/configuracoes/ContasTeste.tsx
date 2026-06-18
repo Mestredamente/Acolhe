@@ -23,19 +23,25 @@ export function ContasTeste() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const isAdmin = user?.profile === 'admin'
   const isClinicaOwner = user?.profile === 'psicologo' && user?.id_clinica && !user?.supervisor_id
+  const canManageUsers = isAdmin || isClinicaOwner
 
   const loadData = async () => {
     try {
-      const pts = await pb
-        .collection<Patient>('patients')
-        .getFullList({ filter: 'is_teste = true && deleted_at = ""' })
+      let ptsFilter = 'is_teste = true && deleted_at = ""'
+      if (!isAdmin && user?.id_clinica) {
+        ptsFilter += ` && id_clinica = "${user.id_clinica}"`
+      }
+      const pts = await pb.collection<Patient>('patients').getFullList({ filter: ptsFilter })
       setPatients(pts)
 
-      if (isClinicaOwner) {
-        const usrs = await pb
-          .collection('users')
-          .getFullList({ filter: `is_teste = true && id_clinica = "${user.id_clinica}"` })
+      if (canManageUsers) {
+        let usrsFilter = 'is_teste = true'
+        if (!isAdmin && user?.id_clinica) {
+          usrsFilter += ` && id_clinica = "${user.id_clinica}"`
+        }
+        const usrs = await pb.collection('users').getFullList({ filter: usrsFilter })
         setUsers(usrs)
       }
     } catch (e) {
@@ -86,7 +92,7 @@ export function ContasTeste() {
         profile,
         status: 'ativo',
         is_teste: true,
-        id_clinica: user?.id_clinica,
+        id_clinica: user?.id_clinica || undefined,
       })
       toast({
         title: 'Usuário de teste criado',
@@ -102,7 +108,7 @@ export function ContasTeste() {
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in-up">
       <div>
         <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-          <FlaskConical className="w-8 h-8 text-orange-600" />
+          <FlaskConical className="w-8 h-8 text-[#1E3A8A]" />
           Contas de Teste
         </h1>
         <p className="text-slate-500 mt-2">
@@ -121,7 +127,7 @@ export function ContasTeste() {
           <Button
             onClick={handleCreatePatient}
             variant="outline"
-            className="text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:text-orange-700"
+            className="text-[#1E3A8A] border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-[#1E3A8A]"
           >
             <Plus className="w-4 h-4 mr-2" /> Novo Paciente
           </Button>
@@ -144,7 +150,7 @@ export function ContasTeste() {
                   </TableCell>
                   <TableCell>{p.email}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">
                       Teste
                     </Badge>
                   </TableCell>
@@ -172,12 +178,12 @@ export function ContasTeste() {
         </CardContent>
       </Card>
 
-      {isClinicaOwner && (
+      {canManageUsers && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Equipe de Teste</CardTitle>
-              <CardDescription>Usuários fictícios na sua clínica.</CardDescription>
+              <CardDescription>Usuários fictícios para testes.</CardDescription>
             </div>
             <div className="space-x-2">
               <Button onClick={() => handleCreateUser('psicologo')} variant="outline" size="sm">
@@ -207,7 +213,7 @@ export function ContasTeste() {
                     <TableCell>{u.email}</TableCell>
                     <TableCell className="capitalize">
                       {u.profile}{' '}
-                      <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-700">
+                      <Badge variant="secondary" className="ml-2 bg-slate-100 text-slate-700">
                         Teste
                       </Badge>
                     </TableCell>

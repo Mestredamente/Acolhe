@@ -18,19 +18,6 @@ import {
   Loader2,
 } from 'lucide-react'
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Button } from '@/components/ui/button'
-import {
   Table,
   TableBody,
   TableCell,
@@ -39,80 +26,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  getMetricasSaas,
-  getSaasAssinaturasExpanded,
-  SaasAssinatura,
-  MetricasSaas,
-} from '@/services/saas'
-import { getTickets, SuporteTicket } from '@/services/suporte'
-import { getAuditLogs, AuditLog } from '@/services/audit_logs'
-import { getClinicas, Clinica } from '@/services/clinicas'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import { useBranding } from '@/hooks/use-branding'
-
-const fallbackRevenueData = [
-  { month: 'Jan', real: 18000, projected: 19000 },
-  { month: 'Fev', real: 19500, projected: 20000 },
-  { month: 'Mar', real: 20200, projected: 21000 },
-  { month: 'Abr', real: 21000, projected: 22000 },
-  { month: 'Mai', real: 22500, projected: 23000 },
-  { month: 'Jun', real: 23400, projected: 24000 },
-]
-
-const fallbackSubscribers = [
-  {
-    id: '1',
-    name: 'Clínica Mente Saudável',
-    type: 'Clínica',
-    plan: 'Professional',
-    date: 'Hoje',
-    status: 'Ativo',
-  },
-  {
-    id: '2',
-    name: 'Dr. João Silva',
-    type: 'Autônomo',
-    plan: 'Profissional',
-    date: 'Ontem',
-    status: 'Trial',
-  },
-  {
-    id: '3',
-    name: 'Centro Psicológico Vida',
-    type: 'Clínica',
-    plan: 'Starter',
-    date: '2 dias atrás',
-    status: 'Ativo',
-  },
-  {
-    id: '4',
-    name: 'Dra. Ana Costa',
-    type: 'Autônomo',
-    plan: 'Free',
-    date: '2 dias atrás',
-    status: 'Ativo',
-  },
-  {
-    id: '5',
-    name: 'Clínica Bem Estar',
-    type: 'Clínica',
-    plan: 'Enterprise',
-    date: '3 dias atrás',
-    status: 'Ativo',
-  },
-]
-
-const COLORS = ['#1E3A8A', '#60a5fa']
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth()
@@ -120,99 +39,125 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [metricas, setMetricas] = useState<MetricasSaas[]>([])
-  const [assinaturas, setAssinaturas] = useState<SaasAssinatura[]>([])
-  const [tickets, setTickets] = useState<SuporteTicket[]>([])
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
-  const [clinicas, setClinicas] = useState<Clinica[]>([])
+  const [mrr, setMrr] = useState(0)
+  const [activeSubscribers, setActiveSubscribers] = useState(0)
+  const [clinicasCount, setClinicasCount] = useState(0)
+  const [autonomosCount, setAutonomosCount] = useState(0)
+  const [churnRate, setChurnRate] = useState(0)
+  const [openTickets, setOpenTickets] = useState(0)
+  const [recentSubscribers, setRecentSubscribers] = useState<any[]>([])
+  const [delinquentSubscribers, setDelinquentSubscribers] = useState<any[]>([])
+  const [auditLogs, setAuditLogs] = useState<any[]>([])
 
-  const defaultTab = user?.profile === 'admin' ? 'geral' : 'acesso-negado'
+  const defaultTab =
+    user?.profile === 'admin' || user?.profile === 'gestor_saas' ? 'geral' : 'acesso-negado'
   const [activeTab, setActiveTab] = useState(defaultTab)
 
   useEffect(() => {
-    if (user?.profile === 'admin') {
+    if (user?.profile === 'admin' || user?.profile === 'gestor_saas') {
       setActiveTab('geral')
     }
   }, [user])
 
+  const loadData = async () => {
+    if (user?.profile !== 'admin' && user?.profile !== 'gestor_saas') return
+    try {
+      setError(null)
+
+      const assinaturas = await pb.collection('saas_assinaturas').getFullList({
+        expand: 'user_id,id_clinica,plano_id',
+        sort: '-data_inicio',
+      })
+
+      // MRR & Active
+      let totalMrr = 0
+      let activeTotal = 0
+      let clinics = 0
+      let autonomos = 0
+
+      const activeAssinaturas = assinaturas.filter((a) => a.status === 'ativo')
+      for (const a of activeAssinaturas) {
+        totalMrr += a.valor_mensal || 0
+        activeTotal++
+        const tipo = a.expand?.plano_id?.tipo || a.plano
+        if (tipo === 'clinica') clinics++
+        else autonomos++
+      }
+      setMrr(totalMrr)
+      setActiveSubscribers(activeTotal)
+      setClinicasCount(clinics)
+      setAutonomosCount(autonomos)
+
+      // Churn
+      const threeMonthsAgo = new Date()
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+      const threeMonthsAgoStr = threeMonthsAgo.toISOString()
+
+      const cancelledLast3Months = assinaturas.filter(
+        (a) => a.status === 'cancelado' && a.updated >= threeMonthsAgoStr,
+      ).length
+      const totalAtStart = activeTotal + cancelledLast3Months
+      if (totalAtStart > 0) {
+        setChurnRate((cancelledLast3Months / totalAtStart) * 100)
+      } else {
+        setChurnRate(0)
+      }
+
+      // Tickets
+      const tickets = await pb.collection('suporte_tickets').getList(1, 1, {
+        filter: "status = 'aberto' || status = 'em_atendimento'",
+      })
+      setOpenTickets(tickets.totalItems)
+
+      // Recent
+      const recent = assinaturas.slice(0, 5).map((a) => ({
+        id: a.id,
+        name: a.expand?.id_clinica?.nome || a.expand?.user_id?.name || 'Assinante',
+        type:
+          a.expand?.plano_id?.tipo === 'clinica' || a.plano === 'clinica' ? 'Clínica' : 'Autônomo',
+        plan: a.expand?.plano_id?.nome || a.plano,
+        date: new Date(a.data_inicio || a.created).toLocaleDateString('pt-BR'),
+        status: a.status.charAt(0).toUpperCase() + a.status.slice(1),
+      }))
+      setRecentSubscribers(recent)
+
+      // Delinquent
+      const delinquent = assinaturas
+        .filter((a) => a.status === 'suspenso')
+        .map((a) => ({
+          id: a.id,
+          name: a.expand?.id_clinica?.nome || a.expand?.user_id?.name || 'Assinante Suspenso',
+          valor_mensal: a.valor_mensal,
+        }))
+      setDelinquentSubscribers(delinquent)
+
+      // Audit Logs (optional but used in UI)
+      try {
+        const logs = await pb.collection('audit_logs').getList(1, 5, { sort: '-created' })
+        setAuditLogs(logs.items)
+      } catch {
+        setAuditLogs([])
+      }
+    } catch (e) {
+      console.error('Error fetching dashboard data:', e)
+      setError('Erro ao carregar dados do dashboard.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (authLoading) return
-
-    if (user?.profile !== 'admin') {
+    if (user?.profile !== 'admin' && user?.profile !== 'gestor_saas') {
       setLoading(false)
       return
     }
-
-    let isMounted = true
-
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const fetchMetricas = async () => {
-          try {
-            return await getMetricasSaas()
-          } catch {
-            return []
-          }
-        }
-        const fetchAssinaturas = async () => {
-          try {
-            return await getSaasAssinaturasExpanded()
-          } catch {
-            return []
-          }
-        }
-        const fetchTickets = async () => {
-          try {
-            return await getTickets()
-          } catch {
-            return []
-          }
-        }
-        const fetchLogs = async () => {
-          try {
-            return await getAuditLogs()
-          } catch {
-            return []
-          }
-        }
-        const fetchClinicas = async () => {
-          try {
-            return await getClinicas()
-          } catch {
-            return []
-          }
-        }
-
-        const [mRes, aRes, tRes, lRes, cRes] = await Promise.all([
-          fetchMetricas(),
-          fetchAssinaturas(),
-          fetchTickets(),
-          fetchLogs(),
-          fetchClinicas(),
-        ])
-
-        if (!isMounted) return
-
-        setMetricas(Array.isArray(mRes) ? mRes : [])
-        setAssinaturas(Array.isArray(aRes) ? aRes : [])
-        setTickets(Array.isArray(tRes) ? tRes : [])
-        setAuditLogs(Array.isArray(lRes) ? lRes : [])
-        setClinicas(Array.isArray(cRes) ? cRes : [])
-      } catch (e) {
-        console.error('Error fetching dashboard data:', e)
-        if (isMounted) setError('Erro ao carregar dados do dashboard. Por favor, tente novamente.')
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-    fetchData()
-
-    return () => {
-      isMounted = false
-    }
+    loadData()
   }, [authLoading, user])
+
+  useRealtime('saas_assinaturas', () => {
+    loadData()
+  })
 
   if (authLoading || loading) {
     return (
@@ -225,7 +170,6 @@ export default function AdminDashboard() {
           <div className="flex gap-2">
             <Skeleton className="h-10 w-[120px]" />
             <Skeleton className="h-10 w-[120px]" />
-            <Skeleton className="h-10 w-[120px]" />
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
@@ -234,26 +178,12 @@ export default function AdminDashboard() {
           <Skeleton className="h-[120px] rounded-xl" />
           <Skeleton className="h-[120px] rounded-xl" />
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 space-y-6">
-            <Skeleton className="h-[350px] rounded-xl" />
-            <Skeleton className="h-[300px] rounded-xl" />
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-[250px] rounded-xl" />
-            <Skeleton className="h-[200px] rounded-xl" />
-          </div>
-        </div>
       </div>
     )
   }
 
-  if (user?.profile === 'psicologo' || user?.profile === 'secretaria') {
+  if (user?.profile !== 'admin' && user?.profile !== 'gestor_saas') {
     return <Navigate to="/" replace />
-  }
-
-  if (user?.profile === 'paciente') {
-    return <Navigate to="/portal" replace />
   }
 
   if (error) {
@@ -268,59 +198,6 @@ export default function AdminDashboard() {
     )
   }
 
-  if (user?.profile !== 'admin') {
-    return <Navigate to="/" replace />
-  }
-
-  // --- Calculations & Fallbacks ---
-
-  // MRR
-  const currentMRR =
-    metricas.length > 0 ? metricas[metricas.length - 1].total_receita_plataforma || 0 : 0
-
-  // Subscribers
-  const activeAssinaturas = assinaturas.filter((a) => a.status === 'ativo' || a.status === 'trial')
-  const totalActive = activeAssinaturas.length
-  const clinicasCount = activeAssinaturas.filter((a) => a.plano_id?.tipo === 'clinica').length
-  const autonomosCount = activeAssinaturas.filter((a) => a.plano_id?.tipo === 'autonomo').length
-
-  const subscriberData = [
-    { name: 'Clínicas', value: clinicasCount },
-    { name: 'Autônomos', value: autonomosCount },
-  ]
-
-  // Tickets
-  const openTicketsCount = tickets.filter(
-    (t) => t.status === 'aberto' || t.status === 'em_atendimento',
-  ).length
-  const displayTickets = openTicketsCount
-
-  // Revenue Chart
-  const revenueData = metricas.slice(-6).map((m) => {
-    const date = new Date(m.data)
-    return {
-      month: date.toLocaleDateString('pt-BR', { month: 'short' }),
-      real: m.total_receita_plataforma || 0,
-      projected: (m.total_receita_plataforma || 0) * 1.05,
-    }
-  })
-
-  // Recent Subscribers Table
-  const recentSubscribers = [...assinaturas]
-    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
-    .slice(0, 5)
-    .map((sub) => ({
-      id: sub.id,
-      name: sub.expand?.id_clinica?.nome || sub.expand?.user_id?.name || 'Assinante',
-      type: sub.plano_id?.tipo === 'clinica' ? 'Clínica' : 'Autônomo',
-      plan: sub.plano_id?.nome || sub.plano,
-      date: new Date(sub.created).toLocaleDateString('pt-BR'),
-      status: sub.status.charAt(0).toUpperCase() + sub.status.slice(1),
-    }))
-
-  // Delinquency
-  const atrasados = assinaturas.filter((a) => a.status === 'suspenso')
-
   return (
     <div className="space-y-6 animate-fade-in pb-10 max-w-[1400px] mx-auto">
       {/* Quick Actions */}
@@ -332,28 +209,14 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="text-[#1E3A8A] border-[#1E3A8A]/20 bg-blue-50/50 hover:bg-blue-50"
-            asChild
-          >
-            <Link to="/admin/comunicacoes">
-              <Send className="w-4 h-4 mr-2" /> Nova Comunicação
+          <Button variant="outline" asChild>
+            <Link to="/admin/assinantes">
+              <Building2 className="w-4 h-4 mr-2" /> Assinantes
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/faturamento">
-              <DollarSign className="w-4 h-4 mr-2" /> Ver Financeiro
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/admin/contabilidade">
-              <Download className="w-4 h-4 mr-2" /> Exportar Relatório Mensal
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/admin/dados-empresa">
-              <Settings className="w-4 h-4 mr-2" /> Configurações
+              <DollarSign className="w-4 h-4 mr-2" /> Financeiro
             </Link>
           </Button>
         </div>
@@ -377,13 +240,10 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    currentMRR,
+                    mrr,
                   )}
                 </div>
-                <p className="text-xs text-emerald-600 flex items-center mt-1 font-medium">
-                  <TrendingUp className="w-3 h-3 mr-1" /> {metricas.length > 1 ? '+5.2%' : '+5.2%'}{' '}
-                  vs. mês passado
-                </p>
+                <p className="text-xs text-slate-500 mt-1">Soma das mensalidades ativas</p>
               </CardContent>
             </Card>
 
@@ -394,37 +254,11 @@ export default function AdminDashboard() {
                 </CardTitle>
                 <Building2 className="h-4 w-4 text-[#1E3A8A]" />
               </CardHeader>
-              <CardContent className="flex justify-between items-center h-16 pt-0">
-                <div>
-                  <div className="text-2xl font-bold text-slate-900">{totalActive}</div>
-                  <div className="flex flex-col gap-0.5 mt-1 text-xs text-slate-500">
-                    <span className="flex items-center">
-                      <span className="w-2 h-2 rounded-full bg-[#1E3A8A] mr-1"></span>
-                      {clinicasCount} Clínicas
-                    </span>
-                    <span className="flex items-center">
-                      <span className="w-2 h-2 rounded-full bg-blue-400 mr-1"></span>
-                      {autonomosCount} Autônomos
-                    </span>
-                  </div>
-                </div>
-                <div className="h-16 w-16 -mt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={subscriberData}
-                        innerRadius={20}
-                        outerRadius={30}
-                        paddingAngle={2}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {subscriberData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">{activeSubscribers}</div>
+                <div className="flex flex-col gap-0.5 mt-1 text-xs text-slate-500">
+                  <span>{clinicasCount} Clínicas</span>
+                  <span>{autonomosCount} Autônomos</span>
                 </div>
               </CardContent>
             </Card>
@@ -432,13 +266,13 @@ export default function AdminDashboard() {
             <Card className="rounded-xl shadow-sm border border-slate-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-600">
-                  Total de Clínicas
+                  Taxa de Churn (3m)
                 </CardTitle>
-                <Building2 className="h-4 w-4 text-[#1E3A8A]" />
+                <TargetIcon className="h-4 w-4 text-slate-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-slate-900">{clinicas.length}</div>
-                <p className="text-xs text-slate-500 mt-1 font-medium">Clínicas cadastradas</p>
+                <div className="text-2xl font-bold text-slate-900">{churnRate.toFixed(1)}%</div>
+                <p className="text-xs text-slate-500 mt-1 font-medium">Cancelamentos / Total</p>
               </CardContent>
             </Card>
 
@@ -454,7 +288,7 @@ export default function AdminDashboard() {
                   <LifeBuoy className="h-4 w-4 text-amber-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{displayTickets}</div>
+                  <div className="text-2xl font-bold text-slate-900">{openTickets}</div>
                   <p className="text-xs text-amber-600 mt-1 flex items-center font-medium">
                     Ver chamados de suporte <ArrowUpRight className="w-3 h-3 ml-1" />
                   </p>
@@ -466,77 +300,6 @@ export default function AdminDashboard() {
           <div className="grid gap-6 md:grid-cols-3">
             {/* Main Column */}
             <div className="md:col-span-2 space-y-6">
-              <Card className="rounded-xl shadow-sm border border-slate-200">
-                <CardHeader>
-                  <CardTitle>Crescimento de Receita</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {revenueData.length > 0 ? (
-                    <div className="h-[280px]">
-                      <ChartContainer
-                        config={{
-                          real: { label: 'Receita Real', color: 'hsl(var(--primary))' },
-                          projected: { label: 'Projetada', color: 'hsl(var(--muted-foreground))' },
-                        }}
-                        className="w-full h-full"
-                      >
-                        <AreaChart
-                          data={revenueData}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#1E3A8A" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#1E3A8A" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.2} />
-                              <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis
-                            dataKey="month"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b', fontSize: 12 }}
-                            dy={10}
-                          />
-                          <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b', fontSize: 12 }}
-                            tickFormatter={(value) => `R$ ${value / 1000}k`}
-                            dx={-10}
-                          />
-                          <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-                          <Area
-                            type="monotone"
-                            dataKey="projected"
-                            stroke="#94a3b8"
-                            strokeDasharray="5 5"
-                            fillOpacity={1}
-                            fill="url(#colorProjected)"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="real"
-                            stroke="#1E3A8A"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="url(#colorReal)"
-                          />
-                        </AreaChart>
-                      </ChartContainer>
-                    </div>
-                  ) : (
-                    <div className="h-[280px] flex items-center justify-center">
-                      <p className="text-sm text-slate-500">0 - Nenhum dado encontrado</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
               <Card className="rounded-xl shadow-sm border border-slate-200">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle>Últimos Assinantes</CardTitle>
@@ -567,7 +330,7 @@ export default function AdminDashboard() {
                               <Badge
                                 variant="outline"
                                 className={
-                                  sub.status === 'Ativo'
+                                  sub.status.toLowerCase() === 'Ativo'
                                     ? 'text-green-700 bg-green-50 border-green-200'
                                     : 'text-blue-700 bg-blue-50 border-blue-200'
                                 }
@@ -580,7 +343,9 @@ export default function AdminDashboard() {
                       </TableBody>
                     </Table>
                   ) : (
-                    <p className="text-sm text-slate-500 p-4 text-center">Nenhum dado encontrado</p>
+                    <p className="text-sm text-slate-500 p-4 text-center">
+                      Nenhum assinante encontrado
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -593,18 +358,14 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {atrasados.length > 0 ? (
-                      atrasados.slice(0, 3).map((a) => (
+                    {delinquentSubscribers.length > 0 ? (
+                      delinquentSubscribers.map((a) => (
                         <div
                           key={a.id}
                           className="flex justify-between items-center bg-white p-3 rounded-lg border border-red-100 shadow-sm"
                         >
                           <div>
-                            <p className="font-semibold text-slate-900 text-sm">
-                              {a.expand?.id_clinica?.nome ||
-                                a.expand?.user_id?.name ||
-                                'Assinante Suspenso'}
-                            </p>
+                            <p className="font-semibold text-slate-900 text-sm">{a.name}</p>
                             <p className="text-xs text-slate-500">
                               Assinatura suspensa •{' '}
                               {new Intl.NumberFormat('pt-BR', {
@@ -624,7 +385,7 @@ export default function AdminDashboard() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-slate-500">0 - Nenhum dado encontrado</p>
+                      <p className="text-sm text-slate-500">Nenhum dado disponível</p>
                     )}
                   </div>
                 </CardContent>
@@ -633,39 +394,6 @@ export default function AdminDashboard() {
 
             {/* Side Column */}
             <div className="space-y-6">
-              <Card className="rounded-xl shadow-sm border border-slate-200 bg-slate-50/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center">
-                    <Send className="w-4 h-4 mr-2 text-[#1E3A8A]" /> Comunicação Rápida
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700">Segmento</label>
-                    <Select defaultValue="todos">
-                      <SelectTrigger className="bg-white border-slate-200">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos os Assinantes</SelectItem>
-                        <SelectItem value="clinicas">Apenas Clínicas</SelectItem>
-                        <SelectItem value="autonomos">Apenas Autônomos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700">Mensagem</label>
-                    <Textarea
-                      placeholder="Digite o aviso ou novidade..."
-                      className="bg-white border-slate-200 min-h-[100px] resize-none"
-                    />
-                  </div>
-                  <Button className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white" asChild>
-                    <Link to="/admin/comunicacoes">Criar Mensagem</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
               <Card className="rounded-xl shadow-sm border border-slate-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center">
@@ -675,7 +403,7 @@ export default function AdminDashboard() {
                 <CardContent>
                   {auditLogs.length > 0 ? (
                     <div className="space-y-3">
-                      {auditLogs.slice(0, 5).map((log) => (
+                      {auditLogs.map((log) => (
                         <div
                           key={log.id}
                           className="text-sm border-b border-slate-100 pb-2 last:border-0 last:pb-0"
@@ -689,7 +417,7 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <p className="text-sm text-slate-500 text-center py-4">
-                      0 - Nenhum dado encontrado
+                      Nenhum dado disponível
                     </p>
                   )}
                 </CardContent>
@@ -709,30 +437,16 @@ export default function AdminDashboard() {
                         {new Intl.NumberFormat('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
-                        }).format(currentMRR)}
+                        }).format(mrr)}
                       </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Impostos Estimados</span>
-                      <span className="font-semibold text-red-600">
-                        -
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(currentMRR * 0.06)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Reembolsos</span>
-                      <span className="font-semibold text-slate-900">R$ 0,00</span>
                     </div>
                     <div className="flex justify-between text-sm pt-2 border-t border-slate-200 font-bold">
-                      <span className="text-[#1E3A8A]">Receita Líquida</span>
+                      <span className="text-[#1E3A8A]">Receita Líquida Estimada</span>
                       <span className="text-[#1E3A8A]">
                         {new Intl.NumberFormat('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
-                        }).format(currentMRR * 0.94)}
+                        }).format(mrr * 0.94)}
                       </span>
                     </div>
                   </div>
@@ -744,7 +458,7 @@ export default function AdminDashboard() {
         <TabsContent value="assinantes" className="space-y-6">
           <Card className="rounded-xl shadow-sm border border-slate-200">
             <CardHeader>
-              <CardTitle>Todos os Assinantes</CardTitle>
+              <CardTitle>Todos os Assinantes (Amostra)</CardTitle>
             </CardHeader>
             <CardContent>
               {recentSubscribers.length > 0 ? (
@@ -769,7 +483,7 @@ export default function AdminDashboard() {
                           <Badge
                             variant="outline"
                             className={
-                              sub.status === 'Ativo'
+                              sub.status.toLowerCase() === 'Ativo'
                                 ? 'text-green-700 bg-green-50 border-green-200'
                                 : 'text-blue-700 bg-blue-50 border-blue-200'
                             }
@@ -782,7 +496,9 @@ export default function AdminDashboard() {
                   </TableBody>
                 </Table>
               ) : (
-                <p className="text-sm text-slate-500 p-4 text-center">Nenhum dado encontrado</p>
+                <p className="text-sm text-slate-500 p-4 text-center">
+                  Nenhum assinante encontrado
+                </p>
               )}
             </CardContent>
           </Card>
@@ -797,7 +513,7 @@ export default function AdminDashboard() {
           <p>
             Dados de pacientes e prontuários clínicos são sigilosos e inacessíveis nesta visão.
             Todas as ações do gestor da plataforma respeitam as diretrizes da LGPD e as normas do
-            CFP (Conselho Federal de Psicologia).
+            CFP.
           </p>
         </div>
       </div>
