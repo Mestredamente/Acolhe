@@ -6,7 +6,7 @@ export interface DiarioEntry {
   patient_id: string
   entry_date: string
   content: string
-  sentiment: 'feliz' | 'neutro' | 'triste' | 'ansioso' | 'irritado' | 'esperançoso'
+  sentiment: 'muito feliz' | 'feliz' | 'neutro' | 'triste' | 'ansioso' | 'irritado'
   created: string
   updated: string
 }

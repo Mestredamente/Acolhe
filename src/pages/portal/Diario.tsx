@@ -5,24 +5,25 @@ import { Textarea } from '@/components/ui/textarea'
 import { getDiarioEntries, createDiarioEntry, type DiarioEntry } from '@/services/diario'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Smile, Meh, Frown, Wind, Angry, Sun } from 'lucide-react'
+import { Smile, Meh, Frown, Wind, Angry, Sparkles } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { usePatientContext } from '@/components/portal/PortalProtectedRoute'
+import { SentimentAnalysis } from '@/components/SentimentAnalysis'
 
 const sentiments = [
+  {
+    value: 'muito feliz',
+    icon: Sparkles,
+    label: 'Muito Feliz',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-100 hover:bg-emerald-200',
+  },
   {
     value: 'feliz',
     icon: Smile,
     label: 'Feliz',
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-100 hover:bg-emerald-200',
-  },
-  {
-    value: 'esperançoso',
-    icon: Sun,
-    label: 'Esperançoso',
-    color: 'text-sky-500',
-    bg: 'bg-sky-100 hover:bg-sky-200',
+    color: 'text-teal-500',
+    bg: 'bg-teal-100 hover:bg-teal-200',
   },
   {
     value: 'neutro',
@@ -61,6 +62,14 @@ export function PortalDiario() {
   const [content, setContent] = useState('')
   const [sentiment, setSentiment] = useState<DiarioEntry['sentiment']>('feliz')
   const [loading, setLoading] = useState(false)
+
+  const focusInput = () => {
+    const textarea = document.getElementById('diario-textarea')
+    if (textarea) {
+      textarea.focus()
+      window.scrollTo({ top: textarea.offsetTop - 100, behavior: 'smooth' })
+    }
+  }
 
   useEffect(() => {
     getDiarioEntries(patient.id).then(setEntries).catch(console.error)
@@ -128,6 +137,7 @@ export function PortalDiario() {
           </div>
 
           <Textarea
+            id="diario-textarea"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Escreva livremente sobre seus pensamentos, sentimentos ou acontecimentos do dia..."
@@ -145,6 +155,12 @@ export function PortalDiario() {
           </div>
         </CardContent>
       </Card>
+
+      {entries.length >= 3 && (
+        <div className="mt-10">
+          <SentimentAnalysis entries={entries} onAction={focusInput} />
+        </div>
+      )}
 
       <div className="space-y-5 mt-10">
         <h3 className="text-2xl font-semibold text-emerald-800 tracking-tight">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T02:16:18.919Z",
+  "generatedAt": "2026-06-18T02:27:58.994Z",
   "collections": [
     {
       "name": "users",
@@ -762,7 +762,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["feliz", "neutro", "triste", "ansioso", "irritado", "esperançoso"]
+          "selectValues": ["muito feliz", "feliz", "neutro", "ansioso", "triste", "irritado"]
         },
         {
           "name": "created",

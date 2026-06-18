@@ -73,6 +73,7 @@ import pb from '@/lib/pocketbase/client'
 import { AnamneseTab } from '@/components/AnamneseTab'
 import { EscalasTab } from '@/components/EscalasTab'
 import { DocumentoFormDialog } from '@/components/DocumentoFormDialog'
+import { DiarioTab } from '@/components/DiarioTab'
 import {
   getDocumentosByPatient,
   Documento,
@@ -486,6 +487,12 @@ export default function PatientDetails() {
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
           >
             Escalas e Questionários
+          </TabsTrigger>
+          <TabsTrigger
+            value="diario"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
+          >
+            Diário Pessoal
           </TabsTrigger>
         </TabsList>
 
@@ -1039,6 +1046,10 @@ export default function PatientDetails() {
 
         <TabsContent value="escalas" className="mt-6">
           <EscalasTab patientId={patient.id} />
+        </TabsContent>
+
+        <TabsContent value="diario" className="mt-6">
+          <DiarioTab patientId={patient.id} />
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-6 space-y-6">
