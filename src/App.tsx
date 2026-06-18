@@ -18,6 +18,8 @@ import JornadaControl from './pages/jornada/Index'
 import ModulosList from './pages/modulos/Index'
 import ClinicasList from './pages/clinicas/Index'
 import ClinicaDetails from './pages/clinicas/Details'
+import SupervisaoList from './pages/supervisao/Index'
+import SupervisaoDetails from './pages/supervisao/Details'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -86,6 +88,8 @@ const App = () => (
               <Route path="/notificacoes" element={<NotificacoesList />} />
               <Route path="/jornada" element={<JornadaControl />} />
               <Route path="/modulos" element={<ModulosList />} />
+              <Route path="/supervisao" element={<SupervisaoList />} />
+              <Route path="/supervisao/:id" element={<SupervisaoDetails />} />
             </Route>
           </Route>
 

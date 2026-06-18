@@ -34,6 +34,7 @@ export function AppSidebar() {
   const isSecretaria = profile === 'secretaria'
   const isAdmin = profile === 'admin'
   const isPaciente = profile === 'paciente'
+  const isSupervisor = user?.is_supervisor === true
 
   // Dashboard, Pacientes, Agenda, Prontuários, Financeiro, Configurações, Suporte.
   // Admin: All + Gestão de Usuários
@@ -84,6 +85,16 @@ export function AppSidebar() {
       roles: ['admin'],
     },
     { name: 'Suporte', href: '/suporte', icon: LifeBuoy, roles: ['psicologo', 'admin'] },
+    ...(isSupervisor
+      ? [
+          {
+            name: 'Supervisão',
+            href: '/supervisao',
+            icon: GraduationCap,
+            roles: ['psicologo', 'admin'],
+          },
+        ]
+      : []),
   ]
 
   // Patient: Meus Dados, Meus Atendimentos, Diário Pessoal, Tarefas e Escalas, Mensagens, Documentos, Configurações.

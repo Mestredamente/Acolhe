@@ -364,6 +364,15 @@ export default function PatientDetails() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
+      {isSupervising && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-md flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-800">
+            <strong>Modo de supervisão — leitura apenas.</strong> Dados protegidos conforme LGPD e
+            Código de Ética do CFP.
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" asChild>
@@ -374,35 +383,37 @@ export default function PatientDetails() {
           <h1 className="text-2xl font-bold text-primary">Ficha do Paciente</h1>
         </div>
         <div className="flex items-center gap-2">
-          {!isEditing && (
+          {!isSupervising && !isEditing && (
             <Button variant="outline" onClick={() => setIsEditing(true)}>
               <Pencil className="w-4 h-4 mr-2" /> Editar
             </Button>
           )}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon">
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir paciente?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Essa ação é permanente e removerá todos os dados do paciente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground"
-                >
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {!isSupervising && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir paciente?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Essa ação é permanente e removerá todos os dados do paciente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -437,11 +448,13 @@ export default function PatientDetails() {
                   : 'Não informado'}
               </p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <Button className="flex-1 md:flex-none">
-                <Calendar className="h-4 w-4 mr-2" /> Agendar
-              </Button>
-            </div>
+            {!isSupervising && (
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button className="flex-1 md:flex-none">
+                  <Calendar className="h-4 w-4 mr-2" /> Agendar
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -653,7 +666,7 @@ export default function PatientDetails() {
                           </div>
                         )}
                       </div>
-                      {patient.guardian_consent_status !== 'assinado' && (
+                      {!isSupervising && patient.guardian_consent_status !== 'assinado' && (
                         <Button
                           onClick={() => {
                             const token = Math.random().toString(36).substring(2, 15)
@@ -708,7 +721,7 @@ export default function PatientDetails() {
                               : 'Pendente'}
                         </Badge>
                       </div>
-                      {(patient.status_convite || 'pendente') !== 'aceito' && (
+                      {!isSupervising && (patient.status_convite || 'pendente') !== 'aceito' && (
                         <Button onClick={handleOpenInvite} variant="secondary" className="w-full">
                           Gerar Link de Convite para o Portal
                         </Button>
@@ -733,14 +746,16 @@ export default function PatientDetails() {
 
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Resumo de Evoluções</h3>
-            <Button
-              onClick={() => {
-                setEditingEvo(null)
-                setEvoFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" /> Nova Evolução
-            </Button>
+            {!isSupervising && (
+              <Button
+                onClick={() => {
+                  setEditingEvo(null)
+                  setEvoFormOpen(true)
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Nova Evolução
+              </Button>
+            )}
           </div>
 
           <Card className="shadow-sm">
@@ -784,7 +799,7 @@ export default function PatientDetails() {
                       )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {!evo.is_signed ? (
+                      {!isSupervising && !evo.is_signed ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -814,14 +829,16 @@ export default function PatientDetails() {
         <TabsContent value="evolucoes" className="mt-6 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Histórico Completo</h3>
-            <Button
-              onClick={() => {
-                setEditingEvo(null)
-                setEvoFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" /> Nova Evolução
-            </Button>
+            {!isSupervising && (
+              <Button
+                onClick={() => {
+                  setEditingEvo(null)
+                  setEvoFormOpen(true)
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Nova Evolução
+              </Button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -851,7 +868,7 @@ export default function PatientDetails() {
                       </CardTitle>
                     </div>
                     <div className="flex gap-2 shrink-0 items-center">
-                      {!evo.is_signed && (
+                      {!isSupervising && !evo.is_signed && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -861,24 +878,28 @@ export default function PatientDetails() {
                           Assinar
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingEvo(evo)
-                          setEvoFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteEvo(evo.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!isSupervising && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingEvo(evo)
+                              setEvoFormOpen(true)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteEvo(evo.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -915,30 +936,32 @@ export default function PatientDetails() {
         <TabsContent value="documentos" className="mt-6 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Documentos Clínicos</h3>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleGenerateLgpd}
-                className="border-teal-600 text-teal-700 hover:bg-teal-50"
-              >
-                <ShieldAlert className="h-4 w-4 mr-2" /> Gerar Termo LGPD
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setAiDocFormOpen(true)}
-                className="bg-primary/10 text-primary hover:bg-primary/20"
-              >
-                <Wand2 className="h-4 w-4 mr-2" /> Gerar com IA
-              </Button>
-              <Button
-                onClick={() => {
-                  setEditingDoc(null)
-                  setDocFormOpen(true)
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" /> Novo Documento
-              </Button>
-            </div>
+            {!isSupervising && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateLgpd}
+                  className="border-teal-600 text-teal-700 hover:bg-teal-50"
+                >
+                  <ShieldAlert className="h-4 w-4 mr-2" /> Gerar Termo LGPD
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setAiDocFormOpen(true)}
+                  className="bg-primary/10 text-primary hover:bg-primary/20"
+                >
+                  <Wand2 className="h-4 w-4 mr-2" /> Gerar com IA
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingDoc(null)
+                    setDocFormOpen(true)
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Novo Documento
+                </Button>
+              </div>
+            )}
           </div>
 
           <Card className="shadow-sm">
@@ -1015,7 +1038,7 @@ export default function PatientDetails() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 justify-end">
-                          {isSignable && !hasSignature && (
+                          {!isSupervising && isSignable && !hasSignature && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -1025,24 +1048,28 @@ export default function PatientDetails() {
                               Assinar
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingDoc(doc)
-                              setDocFormOpen(true)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteDoc(doc.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isSupervising && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingDoc(doc)
+                                  setDocFormOpen(true)
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteDoc(doc.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1076,14 +1103,16 @@ export default function PatientDetails() {
         <TabsContent value="financeiro" className="mt-6 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Histórico Financeiro</h3>
-            <Button
-              onClick={() => {
-                setEditingTransaction(null)
-                setFinFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
-            </Button>
+            {!isSupervising && (
+              <Button
+                onClick={() => {
+                  setEditingTransaction(null)
+                  setFinFormOpen(true)
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -1181,16 +1210,18 @@ export default function PatientDetails() {
                             Ver Recibo
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingTransaction(t)
-                            setFinFormOpen(true)
-                          }}
-                        >
-                          Editar
-                        </Button>
+                        {!isSupervising && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingTransaction(t)
+                              setFinFormOpen(true)
+                            }}
+                          >
+                            Editar
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1257,18 +1288,20 @@ export default function PatientDetails() {
                   </div>
                 </div>
               )}
-              <div className="pt-4 border-t flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditingEvo(viewingEvo)
-                    setViewingEvo(null)
-                    setEvoFormOpen(true)
-                  }}
-                >
-                  <Pencil className="h-4 w-4 mr-2" /> Editar
-                </Button>
-              </div>
+              {!isSupervising && (
+                <div className="pt-4 border-t flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingEvo(viewingEvo)
+                      setViewingEvo(null)
+                      setEvoFormOpen(true)
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>

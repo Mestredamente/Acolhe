@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-18T03:29:34.011Z",
+  "generatedAt": "2026-06-18T03:38:35.017Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id || @request.auth.profile = 'admin'",
-        "view": "id = @request.auth.id || @request.auth.profile = 'admin'",
+        "list": "id = @request.auth.id || @request.auth.profile = 'admin' || supervisor_id = @request.auth.id || (@request.auth.is_supervisor = true && profile = 'psicologo')",
+        "view": "id = @request.auth.id || @request.auth.profile = 'admin' || supervisor_id = @request.auth.id || (@request.auth.is_supervisor = true && profile = 'psicologo')",
         "create": "",
-        "update": "id = @request.auth.id || @request.auth.profile = 'admin'",
+        "update": "id = @request.auth.id || @request.auth.profile = 'admin' || (@request.auth.is_supervisor = true && (supervisor_id = '' || supervisor_id = @request.auth.id))",
         "delete": "id = @request.auth.id || @request.auth.profile = 'admin'"
       },
       "fields": [
@@ -76,6 +76,19 @@
           "required": false,
           "system": false,
           "collectionRef": "clinicas"
+        },
+        {
+          "name": "is_supervisor",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "supervisor_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
@@ -87,8 +100,8 @@
       "name": "patients",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && id_clinica != '' && id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -343,8 +356,8 @@
       "name": "appointments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || patient_id.email = @request.auth.email || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || @request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo' || user_id = @request.auth.id)",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -444,8 +457,8 @@
       "name": "evolucoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -519,8 +532,8 @@
       "name": "anamneses",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && user_id = @request.auth.id",
-        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "list": "@request.auth.id != '' && (user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id)",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -883,8 +896,8 @@
       "name": "documentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
-        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || user_id.supervisor_id = @request.auth.id || (patient_id.email = @request.auth.email && status = 'visivel_paciente') || ((@request.auth.profile = 'secretaria' || @request.auth.profile = 'psicologo') && patient_id.id_clinica != '' && patient_id.id_clinica = @request.auth.id_clinica))",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && user_id = @request.auth.id",
         "delete": "@request.auth.id != '' && user_id = @request.auth.id"
@@ -2012,6 +2025,123 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "supervisao_vinculos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (supervisor_id = @request.auth.id || supervisionado_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (supervisor_id = @request.auth.id || supervisionado_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && supervisor_id = @request.auth.id",
+        "update": "@request.auth.id != '' && supervisor_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && supervisor_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "supervisor_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "supervisionado_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "supervisao_feedback",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (supervisor_id = @request.auth.id || supervisionado_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (supervisor_id = @request.auth.id || supervisionado_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && supervisor_id = @request.auth.id",
+        "update": "@request.auth.id != '' && supervisor_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && supervisor_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "supervisor_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "supervisionado_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "evolucao_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "evolucoes"
+        },
+        {
+          "name": "texto_feedback",
+          "type": "text",
+          "required": true,
+          "system": false
         },
         {
           "name": "created",
