@@ -31,23 +31,31 @@ export interface Anamnese {
   updated: string
 }
 
-export const getAnamnese = async (patientId: string): Promise<Anamnese | null> => {
+export const getAnamnese = async (patientId: string) => {
   try {
     return await pb
       .collection<Anamnese>('anamneses')
-      .getFirstListItem(`patient_id = '${patientId}'`)
-  } catch (err: any) {
-    if (err.status === 404) return null
-    throw err
+      .getFirstListItem(`patient_id = '${patientId}' && deleted_at = ""`)
+  } catch {
+    return null
   }
 }
 
-export const saveAnamnese = async (data: Partial<Anamnese>): Promise<Anamnese> => {
+export const saveAnamnese = async (data: Partial<Anamnese>) => {
+  let anamnese
   if (data.id) {
-    return pb.collection<Anamnese>('anamneses').update(data.id, data)
+    anamnese = await pb.collection<Anamnese>('anamneses').update(data.id, data)
   } else {
-    return pb
-      .collection<Anamnese>('anamneses')
-      .create({ ...data, user_id: pb.authStore.record?.id })
+    anamnese = await pb.collection<Anamnese>('anamneses').create(data)
   }
+  await import('@/services/audit_logs').then((m) =>
+    m.createAuditLog({
+      usuario_id: pb.authStore.record?.id,
+      acao: 'escrita',
+      tabela_afetada: 'anamneses',
+      registro_id: anamnese.id,
+      descricao: 'Anamnese atualizada/salva',
+    }),
+  )
+  return anamnese
 }

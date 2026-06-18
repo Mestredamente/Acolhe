@@ -84,10 +84,12 @@ import {
 } from '@/services/documentos'
 import { Assinatura, getAssinaturasByPatient, createAssinatura } from '@/services/assinaturas'
 import { SignatureDialog } from '@/components/SignatureDialog'
-import { BadgeCheck, AlertTriangle } from 'lucide-react'
+import { BadgeCheck, AlertTriangle, ShieldCheck, History } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { cn } from '@/lib/utils'
 import { Send } from 'lucide-react'
+import { getConsentimentos, Consentimento } from '@/services/consentimentos'
+import { AuditLog, getAuditLogs, createAuditLog } from '@/services/audit_logs'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -128,6 +130,10 @@ export default function PatientDetails() {
   const [inviteLink, setInviteLink] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [activeTab, setActiveTab] = useState('cadastrais')
+
+  const [consentimentos, setConsentimentos] = useState<Consentimento[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [auditModalOpen, setAuditModalOpen] = useState(false)
 
   const isSupervising = Boolean(
     patient &&
@@ -200,6 +206,20 @@ export default function PatientDetails() {
       setAnamnese(await getAnamnese(id))
       setTransactions(await getTransactionsByPatient(id))
       setDocumentos(await getDocumentosByPatient(id))
+      setConsentimentos(await getConsentimentos(id))
+
+      createAuditLog({
+        usuario_id: pb.authStore.record?.id,
+        acao: 'leitura',
+        tabela_afetada: 'patients',
+        registro_id: id,
+        descricao:
+          pb.authStore.record?.profile === 'psicologo' &&
+          pb.authStore.record?.is_supervisor &&
+          patient?.user_id !== pb.authStore.record?.id
+            ? 'Acesso via supervisão'
+            : 'Acesso ao prontuário do paciente',
+      })
     } catch (e) {
       toast({ title: 'Erro', description: 'Paciente não encontrado.', variant: 'destructive' })
     } finally {
@@ -275,7 +295,11 @@ export default function PatientDetails() {
   const handleDelete = async () => {
     try {
       await deletePatient(patient.id)
-      toast({ title: 'Excluído', description: 'Paciente removido com sucesso.' })
+      toast({
+        className: 'bg-yellow-500 text-white border-none',
+        title: 'Removido',
+        description: 'Registro removido com sucesso. Recuperação disponível em até 30 dias.',
+      })
       navigate('/pacientes')
     } catch (e) {
       toast({
@@ -290,7 +314,11 @@ export default function PatientDetails() {
     if (!confirm('Tem certeza que deseja excluir esta evolução?')) return
     try {
       await deleteEvolucao(evoId)
-      toast({ title: 'Excluído', description: 'Evolução removida com sucesso.' })
+      toast({
+        className: 'bg-yellow-500 text-white border-none',
+        title: 'Removido',
+        description: 'Registro removido com sucesso. Recuperação disponível em até 30 dias.',
+      })
       loadData()
     } catch (e) {
       toast({
@@ -305,7 +333,11 @@ export default function PatientDetails() {
     if (!confirm('Tem certeza que deseja excluir este documento?')) return
     try {
       await deleteDocumento(docId)
-      toast({ title: 'Excluído', description: 'Documento removido com sucesso.' })
+      toast({
+        className: 'bg-yellow-500 text-white border-none',
+        title: 'Removido',
+        description: 'Registro removido com sucesso. Recuperação disponível em até 30 dias.',
+      })
       loadData()
     } catch (e) {
       toast({
@@ -506,6 +538,12 @@ export default function PatientDetails() {
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
           >
             Financeiro
+          </TabsTrigger>
+          <TabsTrigger
+            value="consentimentos"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 py-3"
+          >
+            Consentimentos
           </TabsTrigger>
           <TabsTrigger
             value="escalas"
@@ -745,13 +783,25 @@ export default function PatientDetails() {
         </TabsContent>
 
         <TabsContent value="prontuario" className="mt-6 space-y-6">
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
-            <div className="text-sm text-yellow-800">
-              <strong>Aviso Importante:</strong> Este prontuário é de responsabilidade exclusiva do
-              profissional. A IA auxilia na estruturação, mas não substitui o julgamento clínico.
-              Conformidade CFP.
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md flex items-start gap-3 flex-1">
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-yellow-800">
+                <strong>Aviso Importante:</strong> Este prontuário é de responsabilidade exclusiva
+                do profissional. A IA auxilia na estruturação, mas não substitui o julgamento
+                clínico. Conformidade CFP.
+              </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const logs = await getAuditLogs('patients', patient.id)
+                setAuditLogs(logs)
+                setAuditModalOpen(true)
+              }}
+            >
+              <History className="h-4 w-4 mr-2" /> Auditoria de Acesso
+            </Button>
           </div>
 
           <Card className="shadow-sm">
@@ -1152,6 +1202,63 @@ export default function PatientDetails() {
           <DiarioTab patientId={patient.id} />
         </TabsContent>
 
+        <TabsContent value="consentimentos" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" /> Termos e Consentimentos
+            </h3>
+          </div>
+          <Card className="shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo de Consentimento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data de Aceite</TableHead>
+                  <TableHead>Versão do Termo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {['lgpd', 'uso_ia', 'telepsicologia', 'menor_de_idade', 'termos_plataforma'].map(
+                  (tipo) => {
+                    const consent = consentimentos.find((c) => c.tipo === tipo)
+                    const formatTipo = (t: string) => {
+                      const m: Record<string, string> = {
+                        lgpd: 'Termo de LGPD',
+                        uso_ia: 'Uso de Inteligência Artificial',
+                        telepsicologia: 'Atendimento Online (Telepsicologia)',
+                        menor_de_idade: 'Consentimento de Menor',
+                        termos_plataforma: 'Termos de Uso da Plataforma',
+                      }
+                      return m[t] || t
+                    }
+
+                    return (
+                      <TableRow key={tipo}>
+                        <TableCell className="font-medium">{formatTipo(tipo)}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={consent?.aceito ? 'default' : 'secondary'}
+                            className={consent?.aceito ? 'bg-teal-600' : ''}
+                          >
+                            {consent?.aceito ? 'Aceito' : 'Pendente / Recusado'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {consent?.data_aceite
+                            ? new Date(consent.data_aceite).toLocaleDateString('pt-BR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>{consent?.versao_termo || '-'}</TableCell>
+                      </TableRow>
+                    )
+                  },
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="financeiro" className="mt-6 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Histórico Financeiro</h3>
@@ -1298,6 +1405,7 @@ export default function PatientDetails() {
         open={evoFormOpen}
         onOpenChange={setEvoFormOpen}
         onSaved={loadData}
+        consentimentoIaAceito={consentimentos.find((c) => c.tipo === 'uso_ia')?.aceito || false}
       />
 
       <Sheet open={!!viewingEvo} onOpenChange={(open) => !open && setViewingEvo(null)}>
@@ -1386,6 +1494,7 @@ export default function PatientDetails() {
         onOpenChange={setAiDocFormOpen}
         patientId={patient.id}
         onSaved={loadData}
+        consentimentoIaAceito={consentimentos.find((c) => c.tipo === 'uso_ia')?.aceito || false}
       />
 
       <SignatureDialog
@@ -1437,6 +1546,44 @@ export default function PatientDetails() {
             </Button>
             <Button onClick={handleSimulateInvite}>Simular envio</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={auditModalOpen} onOpenChange={setAuditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Auditoria de Acesso ao Prontuário</DialogTitle>
+            <DialogDescription>
+              Registro de todas as ações realizadas no histórico deste paciente.
+            </DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data/Hora</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Ação</TableHead>
+                <TableHead>Descrição</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {auditLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>{new Date(log.created).toLocaleString('pt-BR')}</TableCell>
+                  <TableCell>{log.expand?.usuario_id?.name || 'Desconhecido'}</TableCell>
+                  <TableCell className="capitalize">{log.acao.replace('_', ' ')}</TableCell>
+                  <TableCell>{log.descricao}</TableCell>
+                </TableRow>
+              ))}
+              {auditLogs.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Nenhum registro encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </DialogContent>
       </Dialog>
     </div>

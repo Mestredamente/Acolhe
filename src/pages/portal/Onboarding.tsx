@@ -1,236 +1,194 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Heart, Loader2 } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
-import { useAuth } from '@/hooks/use-auth'
+import { Checkbox } from '@/components/ui/checkbox'
+import { createConsentimento } from '@/services/consentimentos'
 
 export function PortalOnboarding() {
   const { token } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { isAuthenticated, user, signOut } = useAuth()
 
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [patientData, setPatientData] = useState<{
-    id: string
-    name: string
-    email: string
-  } | null>(null)
-
-  const [email, setEmail] = useState('')
+  const [patient, setPatient] = useState<any>(null)
   const [password, setPassword] = useState('')
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [lgpdAccepted, setLgpdAccepted] = useState(false)
-  const [consentAccepted, setConsentAccepted] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const [consents, setConsents] = useState({
+    lgpd: false,
+    uso_ia: false,
+    telepsicologia: false,
+    termos_plataforma: false,
+  })
 
   useEffect(() => {
-    if (!token) {
-      navigate('/portal/login')
-      return
-    }
-
-    const checkToken = async () => {
+    const verifyToken = async () => {
       try {
-        const res = await pb.send(`/backend/v1/invites/${token}`, { method: 'GET' })
-        setPatientData(res)
-        if (res.email) setEmail(res.email)
-      } catch (err: any) {
+        const result = await pb
+          .collection('patients')
+          .getFirstListItem(`link_convite="${token}" && status_convite="enviado"`)
+        setPatient(result)
+      } catch (e) {
         toast({
-          title: 'Convite inválido',
-          description: err.message || 'Este link expirou ou não é mais válido.',
+          title: 'Link inválido',
+          description: 'O link de convite é inválido ou já foi utilizado.',
           variant: 'destructive',
         })
-        navigate('/portal/login')
       } finally {
         setLoading(false)
       }
     }
+    if (token) verifyToken()
+  }, [token])
 
-    checkToken()
-  }, [token, navigate, toast])
-
-  useEffect(() => {
-    if (isAuthenticated && user?.profile === 'paciente') {
-      navigate('/portal', { replace: true })
+  const handleRegister = async () => {
+    if (!password) {
+      toast({ title: 'Erro', description: 'Por favor, insira uma senha.', variant: 'destructive' })
+      return
     }
-  }, [isAuthenticated, user, navigate])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!termsAccepted || !lgpdAccepted || !consentAccepted) {
+    if (!consents.lgpd || !consents.termos_plataforma) {
       toast({
-        title: 'Aceite os termos',
-        description: 'Você precisa aceitar todos os termos para prosseguir.',
+        title: 'Erro',
+        description: 'Os termos de uso e LGPD são obrigatórios.',
         variant: 'destructive',
       })
       return
     }
 
-    if (password.length < 8) {
-      toast({
-        title: 'Senha muito curta',
-        description: 'A senha deve ter pelo menos 8 caracteres.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setSubmitting(true)
     try {
-      if (isAuthenticated) {
-        signOut()
+      setLoading(true)
+
+      const user = await pb.collection('users').create({
+        email: patient.email,
+        password: password,
+        passwordConfirm: password,
+        name: patient.name,
+        profile: 'paciente',
+        status: 'ativo',
+      })
+
+      await pb.collection('patients').update(patient.id, {
+        user_id: user.id,
+        status_convite: 'aceito',
+        link_convite: '',
+      })
+
+      const types = ['lgpd', 'uso_ia', 'telepsicologia', 'termos_plataforma']
+      for (const t of types) {
+        await createConsentimento({
+          paciente_id: patient.id,
+          tipo: t as any,
+          aceito: consents[t as keyof typeof consents],
+          data_aceite: new Date().toISOString(),
+          versao_termo: '1.0',
+        })
       }
 
-      await pb.send(`/backend/v1/invites/${token}/accept`, {
-        method: 'POST',
-        body: JSON.stringify({ email, password, terms_accepted: true }),
-        headers: { 'Content-Type': 'application/json' },
-      })
-
       toast({
-        title: 'Conta criada!',
-        description: 'Sua conta foi criada com sucesso. Por favor, faça login.',
+        title: 'Sucesso!',
+        description: 'Sua conta foi criada. Faça login para acessar o portal.',
       })
       navigate('/portal/login')
-    } catch (err: any) {
+    } catch (e) {
       toast({
-        title: 'Erro ao criar conta',
-        description: err.message || 'Ocorreu um erro ao processar seu cadastro.',
+        title: 'Erro',
+        description: 'Não foi possível criar sua conta.',
         variant: 'destructive',
       })
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-emerald-50 flex items-center justify-center text-emerald-800">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return <div className="p-8 text-center">Carregando...</div>
+
+  if (!patient) return <div className="p-8 text-center text-red-600">Convite inválido.</div>
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-emerald-50 p-4 py-12">
-      <Card className="w-full max-w-lg shadow-xl border-emerald-100 bg-white rounded-3xl overflow-hidden">
-        <CardHeader className="space-y-3 text-center bg-emerald-50/50 pb-8 pt-10 border-b border-emerald-100">
-          <div className="flex justify-center mb-2">
-            <div className="bg-emerald-100 p-4 rounded-2xl text-emerald-600 shadow-sm">
-              <Heart className="w-10 h-10 fill-current" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold text-emerald-900 tracking-tight">
-            Bem-vindo(a) ao Portal
-          </CardTitle>
-          <CardDescription className="text-emerald-700 text-base">
-            Olá, {patientData?.name?.split(' ')[0]}. Conclua seu cadastro para acessar seu espaço
-            seguro.
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl text-primary">Bem-vindo(a), {patient.name}!</CardTitle>
+          <CardDescription>
+            Finalize seu cadastro e revise os termos de consentimento.
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-8 px-8 pb-10">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2 text-left">
-                <Label className="text-emerald-900 ml-1">E-mail</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="seu@email.com"
-                  className="border-emerald-200 focus-visible:ring-emerald-500 rounded-2xl h-12 px-4 bg-slate-50/50"
-                />
-              </div>
-              <div className="space-y-2 text-left">
-                <Label className="text-emerald-900 ml-1">Crie uma Senha</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Mínimo de 8 caracteres"
-                  className="border-emerald-200 focus-visible:ring-emerald-500 rounded-2xl h-12 px-4 bg-slate-50/50"
-                />
-              </div>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={patient.email} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>Crie uma Senha</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-slate-800">Termos e Consentimentos</h3>
+
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="c-lgpd"
+                checked={consents.lgpd}
+                onCheckedChange={(c) => setConsents({ ...consents, lgpd: !!c })}
+              />
+              <Label htmlFor="c-lgpd" className="leading-snug">
+                Eu concordo com o Termo de Tratamento de Dados (LGPD). (Obrigatório)
+              </Label>
             </div>
 
-            <div className="space-y-4 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="terms"
-                  checked={termsAccepted}
-                  onCheckedChange={(c) => setTermsAccepted(c as boolean)}
-                  className="mt-1 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-emerald-900"
-                  >
-                    Aceito os Termos de Serviço
-                  </label>
-                  <p className="text-sm text-emerald-600/80">
-                    Concordo com as condições de uso do portal.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="lgpd"
-                  checked={lgpdAccepted}
-                  onCheckedChange={(c) => setLgpdAccepted(c as boolean)}
-                  className="mt-1 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="lgpd"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-emerald-900"
-                  >
-                    Aceito a Política de Privacidade LGPD
-                  </label>
-                  <p className="text-sm text-emerald-600/80">
-                    Autorizo o tratamento dos meus dados para fins clínicos.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="consent"
-                  checked={consentAccepted}
-                  onCheckedChange={(c) => setConsentAccepted(c as boolean)}
-                  className="mt-1 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="consent"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-emerald-900"
-                  >
-                    Confirmo o consentimento informado
-                  </label>
-                  <p className="text-sm text-emerald-600/80">
-                    Estou ciente das normas e do formato do tratamento.
-                  </p>
-                </div>
-              </div>
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="c-termos"
+                checked={consents.termos_plataforma}
+                onCheckedChange={(c) => setConsents({ ...consents, termos_plataforma: !!c })}
+              />
+              <Label htmlFor="c-termos" className="leading-snug">
+                Eu concordo com os Termos de Uso da Plataforma. (Obrigatório)
+              </Label>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-full h-12 text-base font-medium shadow-sm transition-transform active:scale-95"
-              disabled={submitting}
-            >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Criar conta'}
-            </Button>
-          </form>
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="c-ia"
+                checked={consents.uso_ia}
+                onCheckedChange={(c) => setConsents({ ...consents, uso_ia: !!c })}
+              />
+              <Label htmlFor="c-ia" className="leading-snug">
+                Eu autorizo o uso de ferramentas de Inteligência Artificial para transcrição e
+                auxílio na elaboração de resumos pelo meu psicólogo. (Opcional)
+              </Label>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="c-tele"
+                checked={consents.telepsicologia}
+                onCheckedChange={(c) => setConsents({ ...consents, telepsicologia: !!c })}
+              />
+              <Label htmlFor="c-tele" className="leading-snug">
+                Eu concordo com os termos de atendimento em modalidade online (Telepsicologia).
+                (Opcional)
+              </Label>
+            </div>
+          </div>
         </CardContent>
+        <CardFooter>
+          <Button onClick={handleRegister} className="w-full" disabled={loading}>
+            Finalizar Cadastro
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   )

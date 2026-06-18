@@ -242,6 +242,15 @@ export default function Configuracoes() {
         </AlertDescription>
       </Alert>
 
+      <Alert className="bg-blue-50 border-blue-200 mt-4">
+        <Shield className="h-4 w-4 text-blue-700" />
+        <AlertTitle className="text-blue-900">Conformidade Ativa</AlertTitle>
+        <AlertDescription className="text-blue-800">
+          Soft delete ativo em todas as tabelas. Auditoria de acesso registrada. Consentimentos do
+          paciente obrigatórios para funcionalidades de IA. Conformidade LGPD e CFP.
+        </AlertDescription>
+      </Alert>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="clinica" className="w-full">

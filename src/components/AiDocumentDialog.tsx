@@ -30,11 +30,13 @@ export function AiDocumentDialog({
   onOpenChange,
   patientId,
   onSaved,
+  consentimentoIaAceito = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   patientId: string
   onSaved: () => void
+  consentimentoIaAceito?: boolean
 }) {
   const { toast } = useToast()
   const [step, setStep] = useState<'form' | 'loading' | 'review'>('form')
@@ -137,6 +139,16 @@ export function AiDocumentDialog({
 
         {step === 'form' && (
           <div className="space-y-4 py-2">
+            {!consentimentoIaAceito && (
+              <div className="bg-red-50 text-red-800 p-3 rounded-md flex items-start gap-2 border border-red-200 text-sm mb-4">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p>
+                  Consentimento para uso de IA pendente. Solicite ao paciente a autorização antes de
+                  gerar documentos automatizados.
+                </p>
+              </div>
+            )}
+
             <div className="bg-sky-50 border border-sky-100 p-3 rounded-md flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-sky-600 mt-0.5 shrink-0" />
               <div className="text-xs text-sky-800 leading-relaxed">
@@ -186,7 +198,8 @@ export function AiDocumentDialog({
               </Button>
               <Button
                 onClick={handleGenerate}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                disabled={!consentimentoIaAceito}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-50"
               >
                 <Wand2 className="w-4 h-4 mr-2" /> Gerar Documento
               </Button>

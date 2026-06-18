@@ -1,38 +1,61 @@
 import pb from '@/lib/pocketbase/client'
-import type { Patient } from './patients'
 
 export interface Appointment {
   id: string
-  user_id: string
-  patient_id: string | string[]
-  grupo_id?: string
-  tipo_sessao?: 'individual' | 'grupo'
-  patient_name_text: string
+  patient_id: string
   appointment_date: string
   start_time: string
   end_time: string
-  type: 'Presencial' | 'Online'
-  status: 'agendada' | 'confirmada' | 'cancelada' | 'concluida'
-  observations: string
-  link_or_room: string
-  time?: string
-  created: string
-  updated: string
-  expand?: {
-    patient_id?: Patient | Patient[]
-  }
+  status: string
+  type: string
+  time: string
+  deleted_at?: string
 }
 
-export const getAppointments = () =>
-  pb
+export const getAppointments = async () => {
+  return await pb
     .collection<Appointment>('appointments')
-    .getFullList({ expand: 'patient_id', sort: 'appointment_date,start_time' })
+    .getFullList({ filter: 'deleted_at = ""', sort: '-appointment_date' })
+}
 
-export const createAppointment = (data: Partial<Appointment>) =>
-  pb.collection<Appointment>('appointments').create({ ...data, user_id: pb.authStore.record?.id })
+export const createAppointment = async (data: Partial<Appointment>) => {
+  const apt = await pb.collection<Appointment>('appointments').create(data)
+  await import('@/services/audit_logs').then((m) =>
+    m.createAuditLog({
+      usuario_id: pb.authStore.record?.id,
+      acao: 'escrita',
+      tabela_afetada: 'appointments',
+      registro_id: apt.id,
+      descricao: 'Agendamento criado',
+    }),
+  )
+  return apt
+}
 
-export const updateAppointment = (id: string, data: Partial<Appointment>) =>
-  pb.collection<Appointment>('appointments').update(id, data)
+export const updateAppointment = async (id: string, data: Partial<Appointment>) => {
+  await import('@/services/audit_logs').then((m) =>
+    m.createAuditLog({
+      usuario_id: pb.authStore.record?.id,
+      acao: 'escrita',
+      tabela_afetada: 'appointments',
+      registro_id: id,
+      descricao: 'Agendamento atualizado',
+    }),
+  )
+  return await pb.collection<Appointment>('appointments').update(id, data)
+}
 
-export const deleteAppointment = (id: string) =>
-  pb.collection<Appointment>('appointments').delete(id)
+export const deleteAppointment = async (id: string) => {
+  await import('@/services/audit_logs').then((m) =>
+    m.createAuditLog({
+      usuario_id: pb.authStore.record?.id,
+      acao: 'exclusao_logica',
+      tabela_afetada: 'appointments',
+      registro_id: id,
+      descricao: 'Agendamento excluído logicamente',
+    }),
+  )
+  return await pb
+    .collection<Appointment>('appointments')
+    .update(id, { deleted_at: new Date().toISOString() })
+}

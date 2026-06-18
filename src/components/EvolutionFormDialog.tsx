@@ -32,6 +32,7 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: () => void
+  consentimentoIaAceito?: boolean
 }
 
 export function EvolutionFormDialog({
@@ -41,6 +42,7 @@ export function EvolutionFormDialog({
   open,
   onOpenChange,
   onSaved,
+  consentimentoIaAceito = false,
 }: Props) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -241,6 +243,16 @@ export function EvolutionFormDialog({
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {!consentimentoIaAceito && (
+              <div className="bg-red-50 text-red-800 p-3 rounded-md flex items-start gap-2 border border-red-200 text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p>
+                  Consentimento para uso de IA pendente. Solicite ao paciente a autorização antes de
+                  utilizar transcrição ou resumos automatizados.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Sessão Relacionada</Label>
               <Select value={appointmentId} onValueChange={setAppointmentId}>
@@ -301,9 +313,10 @@ export function EvolutionFormDialog({
                         variant="secondary"
                         size="sm"
                         onClick={handleSimulateTranscription}
-                        disabled={isTranscribing || isRecording}
-                        className="bg-teal-50 text-teal-800 hover:bg-teal-100"
+                        disabled={isTranscribing || isRecording || !consentimentoIaAceito}
+                        className="bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50"
                       >
+                        {' '}
                         {isTranscribing ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
@@ -359,7 +372,7 @@ export function EvolutionFormDialog({
                   variant="secondary"
                   size="sm"
                   onClick={handleSimulateAI}
-                  disabled={isGeneratingSummary || !content}
+                  disabled={isGeneratingSummary || !content || !consentimentoIaAceito}
                 >
                   {isGeneratingSummary ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -79,6 +79,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       const authData = await pb.collection('users').authWithPassword(email, password)
+      await import('@/services/audit_logs').then((m) =>
+        m.createAuditLog({
+          usuario_id: authData.record.id,
+          acao: 'login',
+          tabela_afetada: 'users',
+          descricao: 'Tentativa/sucesso de login',
+        }),
+      )
       if (authData.record.dois_fa_ativo) {
         setIs2FAVerified(false)
         sessionStorage.removeItem('2fa_verified')
@@ -114,9 +122,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = () => {
-    pb.authStore.clear()
-    setIs2FAVerified(false)
-    sessionStorage.removeItem('2fa_verified')
+    const userId = pb.authStore.record?.id
+    if (userId) {
+      import('@/services/audit_logs')
+        .then((m) =>
+          m.createAuditLog({
+            usuario_id: userId,
+            acao: 'logout',
+            tabela_afetada: 'users',
+            descricao: 'Logout efetuado',
+          }),
+        )
+        .finally(() => {
+          pb.authStore.clear()
+          setIs2FAVerified(false)
+          sessionStorage.removeItem('2fa_verified')
+        })
+    } else {
+      pb.authStore.clear()
+      setIs2FAVerified(false)
+      sessionStorage.removeItem('2fa_verified')
+    }
   }
 
   return (
