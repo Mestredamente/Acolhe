@@ -365,10 +365,6 @@ export default function ModulosList() {
   const { user } = useAuth()
   const [phases, setPhases] = useState<Phase[]>(initialPhases)
 
-  if (user?.profile !== 'admin') {
-    return <Navigate to="/" replace />
-  }
-
   const toggleModule = (phaseId: number, moduleId: string) => {
     setPhases((current) =>
       current.map((phase) => {
@@ -411,6 +407,10 @@ export default function ModulosList() {
 
     return { active, lockedCore, inactive, highestPhase }
   }, [phases])
+
+  if (user?.profile !== 'admin') {
+    return <Navigate to="/" replace />
+  }
 
   const getBadgeStyle = (status: ModuleStatus) => {
     switch (status) {
