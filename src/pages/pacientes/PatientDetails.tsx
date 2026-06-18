@@ -84,6 +84,7 @@ import { SignatureDialog } from '@/components/SignatureDialog'
 import { BadgeCheck, AlertTriangle } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { cn } from '@/lib/utils'
+import { Send } from 'lucide-react'
 
 export default function PatientDetails() {
   const { id } = useParams()
@@ -412,7 +413,7 @@ export default function PatientDetails() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-semibold tracking-tight">{patient.name}</h2>
                 <Badge
                   variant={patient.status === 'active' ? 'default' : 'secondary'}
@@ -420,6 +421,11 @@ export default function PatientDetails() {
                 >
                   {patient.status === 'active' ? 'Ativo' : 'Inativo'}
                 </Badge>
+                {age !== '-' && (age as number) < 18 && (
+                  <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                    Menor de Idade
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground flex items-center gap-2">
                 <User className="h-4 w-4" /> {age !== '-' ? `${age} anos • ` : ''} Nasc:{' '}
@@ -583,6 +589,86 @@ export default function PatientDetails() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {age !== '-' && (age as number) < 18 && (
+                  <Card className="shadow-sm border-l-4 border-l-sky-500">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2 text-sky-900">
+                        <ShieldAlert className="h-5 w-5 text-sky-600" /> Responsável Legal
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                          <p className="text-sm">{patient.guardian_name || '-'}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-sm font-medium text-muted-foreground">CPF</p>
+                          <p className="text-sm">{patient.guardian_cpf || '-'}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                          <p className="text-sm">{patient.guardian_phone || '-'}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-sm font-medium text-muted-foreground">Parentesco</p>
+                          <p className="text-sm capitalize">
+                            {patient.guardian_relationship || '-'}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Status do Consentimento
+                          </p>
+                          <Badge
+                            variant={
+                              patient.guardian_consent_status === 'assinado'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                            className={
+                              patient.guardian_consent_status === 'assinado'
+                                ? 'bg-teal-600 mt-1'
+                                : 'mt-1 text-slate-600'
+                            }
+                          >
+                            {patient.guardian_consent_status === 'assinado'
+                              ? 'Assinado'
+                              : 'Pendente'}
+                          </Badge>
+                        </div>
+                        {patient.guardian_observations && (
+                          <div className="col-span-2 bg-slate-50 p-3 rounded-md border text-sm text-slate-700">
+                            {patient.guardian_observations}
+                          </div>
+                        )}
+                      </div>
+                      {patient.guardian_consent_status !== 'assinado' && (
+                        <Button
+                          onClick={() => {
+                            const token = Math.random().toString(36).substring(2, 15)
+                            updatePatient(patient.id, {
+                              link_convite: token,
+                              status_convite: 'enviado',
+                            }).then(() => {
+                              toast({
+                                title: 'Termo Enviado',
+                                description:
+                                  'O link para assinatura foi gerado para o responsável.',
+                              })
+                              loadData()
+                            })
+                          }}
+                          variant="outline"
+                          className="w-full mt-2 border-sky-200 text-sky-700 hover:bg-sky-50"
+                        >
+                          <Send className="h-4 w-4 mr-2" /> Enviar Termo para Responsável
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card className="shadow-sm border-l-4 border-l-primary/60">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -12,6 +12,10 @@ export interface Patient {
   emergency_contact_phone: string
   guardian_name: string
   guardian_phone: string
+  guardian_cpf?: string
+  guardian_relationship?: 'pai' | 'mãe' | 'tutor' | 'outro'
+  guardian_consent_status?: 'assinado' | 'pendente'
+  guardian_observations?: string
   billing_id: string
   billing_address: string
   status: 'active' | 'inactive'

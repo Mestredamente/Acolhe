@@ -18,6 +18,7 @@ import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { ShieldAlert } from 'lucide-react'
 
 export function PortalDashboard() {
   const { patient } = usePatientContext()
@@ -77,6 +78,10 @@ export function PortalDashboard() {
     return diffHours > 0 && diffHours <= 48
   })
 
+  const isMinor =
+    patient.birth_date &&
+    Math.floor((new Date().getTime() - new Date(patient.birth_date).getTime()) / 3.15576e10) < 18
+
   const diffHoursUpcoming = upcomingToConfirm
     ? (() => {
         const dtStr = upcomingToConfirm.appointment_date.substring(0, 10)
@@ -90,6 +95,17 @@ export function PortalDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
+      {isMinor && (
+        <div className="bg-sky-50 border border-sky-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+          <ShieldAlert className="h-5 w-5 text-sky-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-sky-800 leading-relaxed">
+            <strong>Atenção:</strong> Este portal é acessado pelo paciente menor sob supervisão do
+            responsável legal. O responsável <strong>{patient.guardian_name || 'Legal'}</strong>{' '}
+            deve acompanhar o uso. Conformidade LGPD/CFP.
+          </div>
+        </div>
+      )}
+
       {upcomingToConfirm && (
         <Card
           className={`border ${diffHoursUpcoming <= 24 ? 'border-orange-300 bg-orange-50' : 'border-sky-300 bg-sky-50'} shadow-sm`}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T10:49:36.172Z",
+  "generatedAt": "2026-06-18T02:16:18.919Z",
   "collections": [
     {
       "name": "users",
@@ -211,6 +211,32 @@
           "required": false,
           "system": false,
           "selectValues": ["pendente", "enviado", "aceito"]
+        },
+        {
+          "name": "guardian_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "guardian_relationship",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pai", "mãe", "tutor", "outro"]
+        },
+        {
+          "name": "guardian_consent_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["assinado", "pendente"]
+        },
+        {
+          "name": "guardian_observations",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

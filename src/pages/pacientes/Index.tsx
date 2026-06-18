@@ -69,7 +69,21 @@ export default function PacientesList() {
                             <AvatarImage src={avatarUrl} alt={patient.name} />
                             <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <div className="font-medium text-sm">{patient.name}</div>
+                          <div className="font-medium text-sm">
+                            {patient.name}
+                            {patient.birth_date &&
+                              Math.floor(
+                                (new Date().getTime() - new Date(patient.birth_date).getTime()) /
+                                  3.15576e10,
+                              ) < 18 && (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-2 bg-sky-50 text-sky-700 border-sky-200 text-[10px] py-0 h-4"
+                                >
+                                  Menor
+                                </Badge>
+                              )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
