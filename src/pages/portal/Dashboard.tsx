@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar, FileText, CheckSquare, MessageSquare } from 'lucide-react'
+import { Calendar, FileText, CheckSquare, MessageSquare, Users } from 'lucide-react'
 import { getAppointments } from '@/services/appointments'
+import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button'
 export function PortalDashboard() {
   const { user } = useAuth()
   const [nextAppointment, setNextAppointment] = useState<any>(null)
+  const [meusGrupos, setMeusGrupos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,6 +25,18 @@ export function PortalDashboard() {
           )
         if (future.length > 0) {
           setNextAppointment(future[0])
+        }
+
+        try {
+          const patientRecord = await pb
+            .collection('patients')
+            .getFirstListItem(`user_id='${user.id}'`)
+          const grupos = await pb
+            .collection('grupos_terapeuticos')
+            .getFullList({ filter: `participantes ~ '${patientRecord.id}'`, expand: 'user_id' })
+          setMeusGrupos(grupos)
+        } catch {
+          /* intentionally ignored */
         }
       } catch (err) {
         // Fallback for demo
@@ -110,6 +124,33 @@ export function PortalDashboard() {
           </Link>
         </div>
       </div>
+
+      {meusGrupos.length > 0 && (
+        <Card className="standard-card border-none shadow-elevation bg-emerald-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-emerald-800">
+              <Users className="w-5 h-5" />
+              Meus Grupos Terapêuticos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {meusGrupos.map((g) => (
+                <div
+                  key={g.id}
+                  className="p-4 bg-white rounded-lg border border-emerald-100 shadow-sm"
+                >
+                  <h4 className="font-bold text-emerald-900">{g.nome}</h4>
+                  <p className="text-sm text-emerald-700 mb-2">{g.tema}</p>
+                  <p className="text-xs text-slate-500">
+                    Psicólogo Resp.: {g.expand?.user_id?.name || 'Profissional'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="standard-card border-none shadow-elevation">
         <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-4">

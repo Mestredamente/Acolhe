@@ -4,7 +4,9 @@ import type { Patient } from './patients'
 export interface Appointment {
   id: string
   user_id: string
-  patient_id: string
+  patient_id: string | string[]
+  grupo_id?: string
+  tipo_sessao?: 'individual' | 'grupo'
   patient_name_text: string
   appointment_date: string
   start_time: string
@@ -17,7 +19,7 @@ export interface Appointment {
   created: string
   updated: string
   expand?: {
-    patient_id: Patient
+    patient_id?: Patient | Patient[]
   }
 }
 

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Patient, getPatients } from '@/services/patients'
 import { Appointment, createAppointment, updateAppointment } from '@/services/appointments'
 import { toast } from '@/components/ui/use-toast'
@@ -35,16 +36,29 @@ import { AlertCircle, CheckSquare } from 'lucide-react'
 import { getConfig, ConfigClinica } from '@/services/config_clinica'
 import pb from '@/lib/pocketbase/client'
 
-const schema = z.object({
-  patient_id: z.string().min(1, 'Selecione um paciente'),
-  appointment_date: z.string().min(1, 'Data é obrigatória'),
-  start_time: z.string().min(1, 'Hora de início obrigatória'),
-  end_time: z.string().min(1, 'Hora de término obrigatória'),
-  type: z.enum(['Presencial', 'Online']),
-  status: z.enum(['agendada', 'confirmada', 'cancelada', 'concluida']),
-  observations: z.string().optional(),
-  link_or_room: z.string().optional(),
-})
+const schema = z
+  .object({
+    tipo_sessao: z.enum(['individual', 'grupo']).default('individual'),
+    patient_id: z.union([z.string(), z.array(z.string())]),
+    grupo_id: z.string().optional(),
+    appointment_date: z.string().min(1, 'Data é obrigatória'),
+    start_time: z.string().min(1, 'Hora de início obrigatória'),
+    end_time: z.string().min(1, 'Hora de término obrigatória'),
+    type: z.enum(['Presencial', 'Online']),
+    status: z.enum(['agendada', 'confirmada', 'cancelada', 'concluida']),
+    observations: z.string().optional(),
+    link_or_room: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.tipo_sessao === 'individual' && (!data.patient_id || data.patient_id.length === 0))
+        return false
+      if (data.tipo_sessao === 'grupo' && (!data.patient_id || data.patient_id.length === 0))
+        return false
+      return true
+    },
+    { message: 'Selecione pelo menos um paciente', path: ['patient_id'] },
+  )
 
 export function AppointmentFormDialog({
   trigger,
@@ -52,12 +66,18 @@ export function AppointmentFormDialog({
   onClose,
   defaultDate,
   defaultStartTime,
+  defaultGrupoId,
+  defaultParticipants,
+  isGroupMode,
 }: {
   trigger?: React.ReactNode
   appointment?: Appointment
   onClose?: () => void
   defaultDate?: string
   defaultStartTime?: string
+  defaultGrupoId?: string
+  defaultParticipants?: string[]
+  isGroupMode?: boolean
 }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -70,11 +90,6 @@ export function AppointmentFormDialog({
       getConfig(pb.authStore.record?.id || '')
         .then(setConfig)
         .catch(console.error)
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (open) {
       getPatients().then(setPatients).catch(console.error)
     }
   }, [open])
@@ -82,7 +97,9 @@ export function AppointmentFormDialog({
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
-      patient_id: appointment?.patient_id || '',
+      tipo_sessao: appointment?.tipo_sessao || (isGroupMode ? 'grupo' : 'individual'),
+      patient_id: appointment?.patient_id || defaultParticipants || '',
+      grupo_id: appointment?.grupo_id || defaultGrupoId || '',
       appointment_date: appointment?.appointment_date
         ? appointment.appointment_date.substring(0, 10)
         : defaultDate || '',
@@ -117,7 +134,9 @@ export function AppointmentFormDialog({
   useEffect(() => {
     if (appointment) {
       form.reset({
+        tipo_sessao: appointment.tipo_sessao || 'individual',
         patient_id: appointment.patient_id,
+        grupo_id: appointment.grupo_id || '',
         appointment_date: appointment.appointment_date
           ? appointment.appointment_date.substring(0, 10)
           : '',
@@ -128,14 +147,25 @@ export function AppointmentFormDialog({
         observations: appointment.observations || '',
         link_or_room: appointment.link_or_room || '',
       })
-    } else if (defaultDate || defaultStartTime) {
+    } else if (defaultDate || defaultStartTime || defaultGrupoId) {
       form.reset({
         ...form.getValues(),
         appointment_date: defaultDate || '',
         start_time: defaultStartTime || '',
+        grupo_id: defaultGrupoId || '',
+        patient_id: defaultParticipants || '',
+        tipo_sessao: isGroupMode ? 'grupo' : 'individual',
       })
     }
-  }, [appointment, form, defaultDate, defaultStartTime])
+  }, [
+    appointment,
+    form,
+    defaultDate,
+    defaultStartTime,
+    defaultGrupoId,
+    defaultParticipants,
+    isGroupMode,
+  ])
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
@@ -145,13 +175,34 @@ export function AppointmentFormDialog({
     }
   }
 
+  const tipoSessao = form.watch('tipo_sessao')
+
   const onSubmit = async (data: z.infer<typeof schema>) => {
     try {
-      const patient = patients.find((p) => p.id === data.patient_id)
+      const isGrupo = data.tipo_sessao === 'grupo'
+      const patientIds = Array.isArray(data.patient_id) ? data.patient_id : [data.patient_id]
+
+      if (isGrupo) {
+        const limit = config?.limite_maximo_participantes_grupo || 15
+        if (patientIds.length > limit) {
+          form.setError('patient_id', {
+            message: `Limite máximo de ${limit} participantes excedido.`,
+          })
+          return
+        }
+      }
+
+      const patientNames = patientIds
+        .map((id) => patients.find((p) => p.id === id)?.name)
+        .filter(Boolean)
+        .join(', ')
+      const ptNameText = isGrupo ? `Grupo: ${patientNames}` : patientNames
+
       const payload = {
         ...data,
+        patient_id: patientIds,
+        patient_name_text: ptNameText,
         appointment_date: new Date(data.appointment_date + 'T12:00:00Z').toISOString(),
-        patient_name_text: patient?.name || '',
       }
 
       let zoomLinkGenerated = false
@@ -168,29 +219,9 @@ export function AppointmentFormDialog({
       if (isEditing) {
         await updateAppointment(appointment.id, payload)
         toast({ title: 'Consulta atualizada' })
-        if (zoomLinkGenerated) {
-          toast({ title: 'Link do Zoom gerado automaticamente' })
-        }
       } else {
         await createAppointment(payload)
         toast({ title: 'Consulta criada' })
-
-        if (config?.google_calendar_active) {
-          toast({
-            title: 'Sincronizado com Google Calendar',
-            description: `Evento: ${payload.patient_name_text} - Consulta`,
-          })
-          if (patient?.email) {
-            toast({
-              title: 'Convite enviado',
-              description: `Um convite do evento foi enviado para ${patient.email}.`,
-            })
-          }
-        }
-
-        if (zoomLinkGenerated) {
-          toast({ title: 'Link do Zoom gerado', description: 'Link adicionado à consulta online.' })
-        }
       }
       handleOpenChange(false)
     } catch (e) {
@@ -209,18 +240,6 @@ export function AppointmentFormDialog({
     }
   }
 
-  const handleCompleteSession = async () => {
-    if (!appointment) return
-    try {
-      await updateAppointment(appointment.id, { status: 'concluida' })
-      toast({ title: 'Sessão concluída com sucesso!' })
-      handleOpenChange(false)
-      navigate(`/pacientes/${appointment.patient_id}?tab=prontuario`)
-    } catch (e) {
-      toast({ title: 'Erro ao concluir sessão', variant: 'destructive' })
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -230,41 +249,97 @@ export function AppointmentFormDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {isEditing &&
-              (appointment?.status === 'agendada' || appointment?.status === 'confirmada') && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 rounded-md mb-4 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <p>
-                    Fatura gerada automaticamente ao concluir a sessão. Revise antes de enviar ao
-                    paciente.
-                  </p>
-                </div>
-              )}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="patient_id"
+                name="tipo_sessao"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Paciente</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                    <FormLabel>Tipo de Sessão</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isEditing || isGroupMode}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {patients.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="grupo">Grupo</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {tipoSessao === 'grupo' ? (
+                <FormField
+                  control={form.control}
+                  name="patient_id"
+                  render={({ field }) => {
+                    const selected = Array.isArray(field.value) ? field.value : []
+                    return (
+                      <FormItem className="col-span-2">
+                        <FormLabel>
+                          Participantes ({selected.length}/
+                          {config?.limite_maximo_participantes_grupo || 15})
+                        </FormLabel>
+                        <FormControl>
+                          <div className="border rounded-md p-2 space-y-2 max-h-40 overflow-y-auto">
+                            {patients.map((p) => (
+                              <div key={p.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={selected.includes(p.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) field.onChange([...selected, p.id])
+                                    else field.onChange(selected.filter((id) => id !== p.id))
+                                  }}
+                                />
+                                <span className="text-sm">{p.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
+                />
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="patient_id"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Paciente</FormLabel>
+                      <Select
+                        onValueChange={(val) => field.onChange([val])}
+                        value={Array.isArray(field.value) ? field.value[0] : field.value}
+                        disabled={isEditing}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {patients.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="appointment_date"
@@ -283,11 +358,11 @@ export function AppointmentFormDialog({
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo</FormLabel>
+                    <FormLabel>Modalidade</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -334,7 +409,7 @@ export function AppointmentFormDialog({
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -355,51 +430,22 @@ export function AppointmentFormDialog({
                   <FormItem>
                     <FormLabel>Link / Sala</FormLabel>
                     <FormControl>
-                      <Input placeholder="ex: meet.google.com/..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="observations"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Observações</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Opcional..." {...field} />
+                      <Input placeholder="ex: meet..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            <div className="flex justify-between items-center pt-4 border-t mt-2">
-              <div>
-                {isEditing &&
-                  (appointment?.status === 'agendada' || appointment?.status === 'confirmada') && (
-                    <Button
-                      type="button"
-                      variant="default"
-                      className="bg-teal-700 hover:bg-teal-800 text-white"
-                      onClick={handleCompleteSession}
-                    >
-                      <CheckSquare className="w-4 h-4 mr-2" />
-                      Marcar como Realizada
-                    </Button>
-                  )}
-              </div>
-              <div className="flex justify-end gap-2">
-                {isEditing &&
-                  appointment?.status !== 'concluida' &&
-                  appointment?.status !== 'cancelada' && (
-                    <Button type="button" variant="destructive" onClick={handleCancel}>
-                      Cancelar Consulta
-                    </Button>
-                  )}
-                <Button type="submit">Salvar</Button>
-              </div>
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              {isEditing &&
+                appointment?.status !== 'concluida' &&
+                appointment?.status !== 'cancelada' && (
+                  <Button type="button" variant="destructive" onClick={handleCancel}>
+                    Cancelar
+                  </Button>
+                )}
+              <Button type="submit">Salvar</Button>
             </div>
           </form>
         </Form>

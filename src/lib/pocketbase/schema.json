@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T03:38:35.017Z",
+  "generatedAt": "2026-06-18T03:45:17.834Z",
   "collections": [
     {
       "name": "users",
@@ -446,6 +446,20 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "tipo_sessao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["individual", "grupo"]
+        },
+        {
+          "name": "grupo_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "grupos_terapeuticos"
         }
       ],
       "indexes": [
@@ -1451,6 +1465,12 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "limite_maximo_participantes_grupo",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_config_clinica_user ON config_clinica (user_id)"]
@@ -2142,6 +2162,92 @@
           "type": "text",
           "required": true,
           "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "grupos_terapeuticos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || participantes.user_id ?= @request.auth.id || @request.auth.profile = 'secretaria')",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || user_id = @request.auth.id || participantes.user_id ?= @request.auth.id || @request.auth.profile = 'secretaria')",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tema",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "id_clinica",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "clinicas"
+        },
+        {
+          "name": "limite_participantes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ativo", "inativo"]
+        },
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "participantes",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "patients"
         },
         {
           "name": "created",

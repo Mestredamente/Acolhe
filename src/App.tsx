@@ -20,6 +20,8 @@ import ClinicasList from './pages/clinicas/Index'
 import ClinicaDetails from './pages/clinicas/Details'
 import SupervisaoList from './pages/supervisao/Index'
 import SupervisaoDetails from './pages/supervisao/Details'
+import GruposList from './pages/grupos/Index'
+import GrupoDetails from './pages/grupos/Details'
 import { AuthProvider } from './hooks/use-auth'
 import { Login } from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -86,6 +88,8 @@ const App = () => (
               <Route path="/clinicas/:id" element={<ClinicaDetails />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
+              <Route path="/grupos" element={<GruposList />} />
+              <Route path="/grupos/:id" element={<GrupoDetails />} />
               <Route path="/jornada" element={<JornadaControl />} />
               <Route path="/modulos" element={<ModulosList />} />
               <Route path="/supervisao" element={<SupervisaoList />} />

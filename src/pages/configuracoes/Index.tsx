@@ -109,6 +109,7 @@ const schema = z.object({
   zoom_active: z.boolean().optional(),
   zoom_auto_link: z.boolean().optional(),
   whatsapp_phone: z.string().optional(),
+  limite_maximo_participantes_grupo: z.coerce.number().min(1).optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -476,6 +477,19 @@ export default function Configuracoes() {
                             <FormLabel>Tempo Padrão da Sessão (minutos)</FormLabel>
                             <FormControl>
                               <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="limite_maximo_participantes_grupo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Limite Máx. Participantes por Grupo</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} value={field.value || 15} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

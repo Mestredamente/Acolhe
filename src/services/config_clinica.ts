@@ -40,6 +40,7 @@ export interface ConfigClinica {
   zoom_auto_link?: boolean
   whatsapp_phone?: string
   whatsapp_connected?: boolean
+  limite_maximo_participantes_grupo?: number
 }
 
 export const getConfig = async (userId: string): Promise<ConfigClinica | null> => {

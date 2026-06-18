@@ -58,6 +58,12 @@ export function AppSidebar() {
       icon: Users,
       roles: ['psicologo', 'admin', 'secretaria'],
     },
+    {
+      name: 'Grupos',
+      href: '/grupos',
+      icon: Users,
+      roles: ['psicologo', 'admin'],
+    },
     { name: 'Prontuários', href: '/prontuarios', icon: FileText, roles: ['psicologo', 'admin'] },
     { name: 'Financeiro', href: '/financeiro', icon: DollarSign, roles: ['psicologo', 'admin'] },
     {
