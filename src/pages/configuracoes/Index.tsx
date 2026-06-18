@@ -76,6 +76,7 @@ const diasSemana = [
 ]
 
 const schema = z.object({
+  id: z.string().optional(),
   nome_clinica: z.string().optional(),
   crp_psicologo: z.string().optional(),
   documento_identificacao: z.string().optional(),
@@ -109,6 +110,7 @@ const schema = z.object({
   zoom_auto_link: z.boolean().optional(),
   whatsapp_phone: z.string().optional(),
   limite_maximo_participantes_grupo: z.coerce.number().min(1).optional(),
+  logo_url: z.any().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -119,6 +121,8 @@ export default function Configuracoes() {
   const [openGoogle, setOpenGoogle] = useState(false)
   const [openZoom, setOpenZoom] = useState(false)
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   const { user } = useAuth()
   const form = useForm<FormData>({
@@ -157,8 +161,19 @@ export default function Configuracoes() {
       if (signatureFile) {
         payload.append('assinatura_padrao', signatureFile)
       }
+      if (logoFile) {
+        payload.append('logo_url', logoFile)
+      }
 
       await saveConfig(userId, payload)
+
+      if (avatarFile) {
+        const avatarData = new window.FormData()
+        avatarData.append('avatar_url', avatarFile)
+        await pb.collection('users').update(user.id, avatarData)
+        await pb.collection('users').authRefresh()
+      }
+
       toast({
         title: 'Configurações salvas',
         description: 'Suas preferências foram atualizadas com sucesso.',
@@ -285,6 +300,45 @@ export default function Configuracoes() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2 flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                      {logoFile ? (
+                        <img
+                          src={URL.createObjectURL(logoFile)}
+                          alt="Logo Preview"
+                          className="w-16 h-16 object-contain rounded bg-white shadow-sm"
+                        />
+                      ) : form.watch('logo_url') && typeof form.watch('logo_url') === 'string' ? (
+                        <img
+                          src={pb.files.getUrl(
+                            { collectionId: 'config_clinica', id: form.getValues('id') as string },
+                            form.watch('logo_url') as string,
+                          )}
+                          alt="Logo"
+                          className="w-16 h-16 object-contain rounded bg-white shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-white border shadow-sm rounded flex items-center justify-center text-slate-300 text-xs">
+                          Logo
+                        </div>
+                      )}
+                      <FormItem className="flex-1">
+                        <FormLabel>Logo da Clínica (JPG/PNG max 2MB)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                setLogoFile(e.target.files[0])
+                              } else {
+                                setLogoFile(null)
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="nome_clinica"
@@ -352,6 +406,39 @@ export default function Configuracoes() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border mb-4">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border shadow-sm bg-white shrink-0 flex items-center justify-center bg-slate-100">
+                      <img
+                        src={
+                          avatarFile
+                            ? URL.createObjectURL(avatarFile)
+                            : user?.avatar_url
+                              ? pb.files.getUrl(user, user.avatar_url)
+                              : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+                        }
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <FormItem className="flex-1">
+                      <FormLabel>Sua Foto de Perfil (Avatar)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                              setAvatarFile(e.target.files[0])
+                            } else {
+                              setAvatarFile(null)
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>Essa foto aparecerá para os pacientes.</FormDescription>
+                    </FormItem>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}

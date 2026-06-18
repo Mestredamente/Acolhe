@@ -32,6 +32,7 @@ import { PortalProtectedRoute } from './components/portal/PortalProtectedRoute'
 import NotificacoesList from './pages/notificacoes/Index'
 import { PortalOnboarding } from './pages/portal/Onboarding'
 import { GlobalOnboarding } from './components/GlobalOnboarding'
+import SuportePage from './pages/suporte/Index'
 
 const App = () => (
   <AuthProvider>
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/portal/documentos" element={<PortalDocumentos />} />
               <Route path="/portal/notificacoes" element={<NotificacoesList isPortal />} />
               <Route path="/portal/configuracoes" element={<PortalConfiguracoes />} />
+              <Route path="/portal/suporte" element={<SuportePage />} />
             </Route>
           </Route>
 
@@ -82,6 +84,7 @@ const App = () => (
               <Route path="/usuarios" element={<UsuariosList />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/notificacoes" element={<NotificacoesList />} />
+              <Route path="/suporte" element={<SuportePage />} />
             </Route>
           </Route>
 

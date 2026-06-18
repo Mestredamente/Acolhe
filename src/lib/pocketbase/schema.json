@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T04:21:00.409Z",
+  "generatedAt": "2026-06-18T04:30:37.071Z",
   "collections": [
     {
       "name": "users",
@@ -89,6 +89,12 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "avatar_url",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1471,6 +1477,12 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "logo_url",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_config_clinica_user ON config_clinica (user_id)"]
@@ -2395,6 +2407,86 @@
         {
           "name": "ticket_medio_clinica",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "suporte_tickets",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.profile = 'admin' || usuario_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.profile = 'admin' || usuario_id = @request.auth.id)",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (@request.auth.profile = 'admin' || usuario_id = @request.auth.id)",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["tecnico", "financeiro", "privade", "sugestao"]
+        },
+        {
+          "name": "prioridade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["baixa", "media", "alta", "urgente"]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["aberto", "em_atendimento", "resolvido", "fechado"]
+        },
+        {
+          "name": "resposta",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_resposta",
+          "type": "date",
           "required": false,
           "system": false
         },

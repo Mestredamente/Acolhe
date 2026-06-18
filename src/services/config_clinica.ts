@@ -17,6 +17,7 @@ export interface ConfigClinica {
   estado?: string
   pais?: string
   logo?: string
+  logo_url?: string
   assinatura_padrao?: string
   cor_primaria?: string
   tempo_sessao_minutos?: number

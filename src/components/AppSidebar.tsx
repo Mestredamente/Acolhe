@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import pb from '@/lib/pocketbase/client'
 
 export function AppSidebar() {
   const location = useLocation()
@@ -100,6 +102,7 @@ export function AppSidebar() {
     { name: 'Mensagens', href: '/portal/mensagens', icon: MessageSquare },
     { name: 'Documentos', href: '/portal/documentos', icon: FileText },
     { name: 'Configurações', href: '/portal/configuracoes', icon: Settings },
+    { name: 'Suporte', href: '/portal/suporte', icon: LifeBuoy },
   ]
 
   const filteredNav = isPaciente
@@ -152,6 +155,29 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <div className="p-4 border-t border-slate-200 flex items-center gap-3">
+        <Avatar className="h-10 w-10 border border-slate-200 shadow-sm bg-white">
+          <AvatarImage
+            src={
+              user?.avatar_url
+                ? pb.files.getUrl(user, user.avatar_url)
+                : user?.avatar
+                  ? pb.files.getUrl(user, user.avatar)
+                  : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+            }
+            alt={user?.name || 'User'}
+          />
+          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+            {user?.name?.substring(0, 2).toUpperCase() || 'US'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col overflow-hidden">
+          <span className="text-sm font-semibold text-slate-900 truncate">
+            {user?.name || 'Usuário'}
+          </span>
+          <span className="text-xs text-slate-500 capitalize truncate">{profile}</span>
+        </div>
+      </div>
     </Sidebar>
   )
 }

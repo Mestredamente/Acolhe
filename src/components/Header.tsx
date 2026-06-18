@@ -4,6 +4,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 
 export function Header() {
   const { user } = useAuth()
@@ -43,9 +44,11 @@ export function Header() {
           <Avatar className="h-10 w-10 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
             <AvatarImage
               src={
-                user?.avatar
-                  ? `https://gestao-clinica-psicologica-4cb9d.shrd00.internal.goskip.dev/api/files/users/${user.id}/${user.avatar}`
-                  : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+                user?.avatar_url
+                  ? pb.files.getUrl(user, user.avatar_url)
+                  : user?.avatar
+                    ? pb.files.getUrl(user, user.avatar)
+                    : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
               }
               alt={user?.name || 'User'}
             />

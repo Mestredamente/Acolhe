@@ -25,6 +25,7 @@ export function PortalConfiguracoes() {
   const [showModal, setShowModal] = useState(false)
   const [generatedCode, setGeneratedCode] = useState('')
   const [inputCode, setInputCode] = useState('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   const handleDeactivate = async () => {
     await pb.collection('users').update(user.id, { dois_fa_ativo: false })
@@ -38,6 +39,20 @@ export function PortalConfiguracoes() {
     setGeneratedCode(code)
     setInputCode('')
     setShowModal(true)
+  }
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return
+    try {
+      const formData = new window.FormData()
+      formData.append('avatar_url', avatarFile)
+      await pb.collection('users').update(user.id, formData)
+      await pb.collection('users').authRefresh()
+      toast({ title: 'Foto de perfil atualizada!' })
+      setAvatarFile(null)
+    } catch (e) {
+      toast({ title: 'Erro ao atualizar foto', variant: 'destructive' })
+    }
   }
 
   const handleConfirm2FA = async () => {
@@ -61,6 +76,54 @@ export function PortalConfiguracoes() {
         </h2>
         <p className="text-emerald-700 mt-2">Gerencie a segurança da sua conta no portal.</p>
       </div>
+
+      <Card className="border-emerald-100 shadow-sm bg-white overflow-hidden rounded-2xl">
+        <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 py-4">
+          <CardTitle className="text-emerald-800">Foto de Perfil</CardTitle>
+          <CardDescription>Personalize sua conta adicionando uma foto.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-emerald-100 shadow-sm bg-white shrink-0 flex items-center justify-center bg-slate-100">
+              <img
+                src={
+                  avatarFile
+                    ? URL.createObjectURL(avatarFile)
+                    : user?.avatar_url
+                      ? pb.files.getUrl(user, user.avatar_url)
+                      : `https://img.usecurling.com/ppl/thumbnail?gender=neutral&seed=${user?.id || 1}`
+                }
+                alt="Avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex-1 space-y-3 w-full">
+              <Label>Escolher nova foto (JPG/PNG)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  className="max-w-xs"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setAvatarFile(e.target.files[0])
+                    } else {
+                      setAvatarFile(null)
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleAvatarUpload}
+                  disabled={!avatarFile}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Salvar Foto
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-emerald-100 shadow-sm bg-white overflow-hidden rounded-2xl">
         <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 py-4">
