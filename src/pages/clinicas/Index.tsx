@@ -28,7 +28,6 @@ import { useAuth } from '@/hooks/use-auth'
 
 export default function ClinicasList() {
   const { user } = useAuth()
-  if (user?.profile !== 'admin') return <Navigate to="/" />
 
   const [clinicas, setClinicas] = useState<Clinica[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -64,6 +63,8 @@ export default function ClinicasList() {
     if (search && !c.nome.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  if (user?.profile !== 'admin') return <Navigate to="/" />
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">

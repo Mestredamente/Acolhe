@@ -54,8 +54,6 @@ export default function ClinicaDetails() {
   const { user } = useAuth()
   const { toast } = useToast()
 
-  if (user?.profile !== 'admin') return <Navigate to="/" />
-
   const [clinica, setClinica] = useState<Clinica | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -120,6 +118,8 @@ export default function ClinicaDetails() {
       })
     }
   }
+
+  if (user?.profile !== 'admin') return <Navigate to="/" />
 
   if (loading)
     return <div className="p-8 text-center text-muted-foreground">Carregando clínica...</div>
