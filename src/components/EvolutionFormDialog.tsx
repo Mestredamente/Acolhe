@@ -118,8 +118,9 @@ export function EvolutionFormDialog({
     }
     setIsGeneratingSummary(true)
     setTimeout(() => {
-      const simulatedOutput = 'Paciente relata progresso com técnicas de respiração para manejo de crises de ansiedade. Leve desconforto laboral contornado com sucesso.'
-      
+      const simulatedOutput =
+        'Paciente relata progresso com técnicas de respiração para manejo de crises de ansiedade. Leve desconforto laboral contornado com sucesso.'
+
       import('@/lib/ai-safety').then(({ checkClinicalSafety, logAiUsage }) => {
         const isSafe = checkClinicalSafety(simulatedOutput)
         if (!isSafe) {
@@ -128,12 +129,13 @@ export function EvolutionFormDialog({
             provedor_usado: 'Claude',
             resumo_prompt: 'Gerar resumo da sessão baseada nas notas inseridas pelo profissional',
             resumo_resposta: '[BLOQUEADO] ' + simulatedOutput.substring(0, 50) + '...',
-            status: 'falha'
+            status: 'falha',
           })
           toast({
             title: 'Bloqueio de Segurança',
-            description: 'Conteúdo bloqueado por segurança clínica (ex: diagnóstico definitivo, prescrição). Edite manualmente.',
-            variant: 'destructive'
+            description:
+              'Conteúdo bloqueado por segurança clínica (ex: diagnóstico definitivo, prescrição). Edite manualmente.',
+            variant: 'destructive',
           })
           setIsGeneratingSummary(false)
           return
@@ -154,7 +156,7 @@ export function EvolutionFormDialog({
         provedor_usado: 'Claude',
         resumo_prompt: 'Gerar resumo da sessão baseada nas notas',
         resumo_resposta: pendingAiContent.substring(0, 100) + '...',
-        status: 'sucesso'
+        status: 'sucesso',
       })
     })
   }
@@ -167,7 +169,7 @@ export function EvolutionFormDialog({
         provedor_usado: 'Claude',
         resumo_prompt: 'Gerar resumo da sessão baseada nas notas',
         resumo_resposta: pendingAiContent.substring(0, 100) + '...',
-        status: 'aguardando validação'
+        status: 'aguardando validação',
       })
     })
   }
@@ -227,184 +229,185 @@ export function EvolutionFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{evolution ? 'Editar Evolução' : 'Nova Evolução'}</DialogTitle>
-          <DialogDescription>
-            Registre as notas da sessão. Utilize transcrição de voz e geração de resumos via IA para
-            facilitar seu trabalho.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{evolution ? 'Editar Evolução' : 'Nova Evolução'}</DialogTitle>
+            <DialogDescription>
+              Registre as notas da sessão. Utilize transcrição de voz e geração de resumos via IA
+              para facilitar seu trabalho.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label>Sessão Relacionada</Label>
-            <Select value={appointmentId} onValueChange={setAppointmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a sessão" />
-              </SelectTrigger>
-              <SelectContent>
-                {appointments.map((apt) => {
-                  const sourceDate = apt.appointment_date || apt.time || ''
-                  const d = new Date(sourceDate.replace(' ', 'T'))
-                  const dateString = !isNaN(d.getTime())
-                    ? d.toLocaleDateString('pt-BR')
-                    : 'Data inválida'
-                  return (
-                    <SelectItem key={apt.id} value={apt.id}>
-                      {dateString !== 'Data inválida' ? `${dateString} - ` : ''}
-                      {apt.type} {apt.start_time ? `às ${apt.start_time}` : ''}
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label>Sessão Relacionada</Label>
+              <Select value={appointmentId} onValueChange={setAppointmentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a sessão" />
+                </SelectTrigger>
+                <SelectContent>
+                  {appointments.map((apt) => {
+                    const sourceDate = apt.appointment_date || apt.time || ''
+                    const d = new Date(sourceDate.replace(' ', 'T'))
+                    const dateString = !isNaN(d.getTime())
+                      ? d.toLocaleDateString('pt-BR')
+                      : 'Data inválida'
+                    return (
+                      <SelectItem key={apt.id} value={apt.id}>
+                        {dateString !== 'Data inválida' ? `${dateString} - ` : ''}
+                        {apt.type} {apt.start_time ? `às ${apt.start_time}` : ''}
+                      </SelectItem>
+                    )
+                  })}
+                  {appointments.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Nenhuma sessão encontrada
                     </SelectItem>
-                  )
-                })}
-                {appointments.length === 0 && (
-                  <SelectItem value="none" disabled>
-                    Nenhuma sessão encontrada
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label>Notas da Sessão</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSimulateRecording}
-                    disabled={isRecording || isTranscribing}
-                    className={
-                      isRecording
-                        ? 'text-teal-700 animate-pulse border-teal-700 bg-teal-50'
-                        : 'text-teal-700 border-teal-200 hover:bg-teal-50'
-                    }
-                  >
-                    {isRecording ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mic className="h-4 w-4 mr-2" />
-                    )}
-                    {isRecording ? 'Gravando...' : 'Gravar Áudio'}
-                  </Button>
-
-                  {hasAudio ? (
+            <div className="space-y-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Notas da Sessão</Label>
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
-                      onClick={handleSimulateTranscription}
-                      disabled={isTranscribing || isRecording}
-                      className="bg-teal-50 text-teal-800 hover:bg-teal-100"
+                      onClick={handleSimulateRecording}
+                      disabled={isRecording || isTranscribing}
+                      className={
+                        isRecording
+                          ? 'text-teal-700 animate-pulse border-teal-700 bg-teal-50'
+                          : 'text-teal-700 border-teal-200 hover:bg-teal-50'
+                      }
                     >
-                      {isTranscribing ? (
+                      {isRecording ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <Wand2 className="h-4 w-4 mr-2" />
+                        <Mic className="h-4 w-4 mr-2" />
                       )}
-                      {isTranscribing
-                        ? 'Convertendo áudio para texto... Aguarde'
-                        : 'Transcrever Gravação'}
+                      {isRecording ? 'Gravando...' : 'Gravar Áudio'}
                     </Button>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              disabled
-                              className="bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50"
-                            >
-                              <Wand2 className="h-4 w-4 mr-2" />
-                              Transcrever Gravação
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Gravar áudio primeiro para transcrever</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+
+                    {hasAudio ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleSimulateTranscription}
+                        disabled={isTranscribing || isRecording}
+                        className="bg-teal-50 text-teal-800 hover:bg-teal-100"
+                      >
+                        {isTranscribing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4 mr-2" />
+                        )}
+                        {isTranscribing
+                          ? 'Convertendo áudio para texto... Aguarde'
+                          : 'Transcrever Gravação'}
+                      </Button>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                disabled
+                                className="bg-teal-50 text-teal-800 hover:bg-teal-100 disabled:opacity-50"
+                              >
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Transcrever Gravação
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Gravar áudio primeiro para transcrever</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </div>
+                <Textarea
+                  className="min-h-[150px] resize-y"
+                  placeholder="Digite as observações clínicas aqui..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  A transcrição é automatizada para auxiliar no registro. Revise o conteúdo antes de
+                  salvar. Conforme CFP.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Resumo (IA)</Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSimulateAI}
+                  disabled={isGeneratingSummary || !content}
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-2" />
+                  )}
+                  {isGeneratingSummary ? 'Gerando...' : 'Gerar Resumo'}
+                </Button>
               </div>
               <Textarea
-                className="min-h-[150px] resize-y"
-                placeholder="Digite as observações clínicas aqui..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+                className="min-h-[80px] bg-muted/50"
+                placeholder="O resumo gerado pela IA aparecerá aqui..."
+                value={aiSummary}
+                onChange={(e) => setAiSummary(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                A transcrição é automatizada para auxiliar no registro. Revise o conteúdo antes de
-                salvar. Conforme CFP.
-              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 bg-muted/20 p-3 rounded-md border">
+              <Checkbox
+                id="is_signed"
+                checked={isSigned}
+                onCheckedChange={(checked) => setIsSigned(checked as boolean)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="is_signed"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Assinar digitalmente
+                </label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ao marcar, você assina esta evolução em conformidade com as resoluções do CFP.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Resumo (IA)</Label>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handleSimulateAI}
-                disabled={isGeneratingSummary || !content}
-              >
-                {isGeneratingSummary ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4 mr-2" />
-                )}
-                {isGeneratingSummary ? 'Gerando...' : 'Gerar Resumo'}
-              </Button>
-            </div>
-            <Textarea
-              className="min-h-[80px] bg-muted/50"
-              placeholder="O resumo gerado pela IA aparecerá aqui..."
-              value={aiSummary}
-              onChange={(e) => setAiSummary(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2 bg-muted/20 p-3 rounded-md border">
-            <Checkbox
-              id="is_signed"
-              checked={isSigned}
-              onCheckedChange={(checked) => setIsSigned(checked as boolean)}
-            />
-            <div className="grid gap-1.5 leading-none">
-              <label
-                htmlFor="is_signed"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Assinar digitalmente
-              </label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Ao marcar, você assina esta evolução em conformidade com as resoluções do CFP.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            Salvar Evolução
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Salvar Evolução
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AiValidationModal
         open={isValidationModalOpen}
