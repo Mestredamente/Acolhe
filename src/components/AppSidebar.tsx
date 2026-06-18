@@ -12,6 +12,8 @@ import {
   LifeBuoy,
   Server,
   Building2,
+  Activity,
+  GraduationCap,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -40,6 +42,12 @@ export function AppSidebar() {
   // Admin: All + Gestão de Usuários
   // Secretaria: Dashboard, Agenda, Pacientes, Configurações
   const baseNav = [
+    {
+      name: 'Dashboard Gestor',
+      href: '/admin/dashboard',
+      icon: Activity,
+      roles: ['admin'],
+    },
     {
       name: 'Dashboard',
       href: isSecretaria ? '/secretaria/dashboard' : '/',

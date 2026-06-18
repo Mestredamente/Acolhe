@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T03:45:17.834Z",
+  "generatedAt": "2026-06-18T03:54:42.463Z",
   "collections": [
     {
       "name": "users",
@@ -2248,6 +2248,155 @@
           "required": false,
           "system": false,
           "collectionRef": "patients"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "saas_assinaturas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.profile = 'admin'",
+        "view": "@request.auth.profile = 'admin'",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "id_clinica",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "clinicas"
+        },
+        {
+          "name": "plano",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["free", "profissional", "clinica", "corporativo"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "trial", "suspenso", "cancelado"]
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_renovacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_mensal",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "limite_psicologos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "metricas_saas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.profile = 'admin'",
+        "view": "@request.auth.profile = 'admin'",
+        "create": "@request.auth.profile = 'admin'",
+        "update": "@request.auth.profile = 'admin'",
+        "delete": "@request.auth.profile = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total_clinicas_ativas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_psicologos_ativos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_pacientes_cadastrados",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_consultas_mes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_nfe_emitidas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_receita_plataforma",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ticket_medio_clinica",
+          "type": "number",
+          "required": false,
+          "system": false
         },
         {
           "name": "created",

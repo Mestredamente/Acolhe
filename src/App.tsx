@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import AdminDashboard from './pages/admin/Dashboard'
 import PatientDetails from './pages/pacientes/PatientDetails'
 import PacientesList from './pages/pacientes/Index'
 import Agenda from './pages/agenda/Index'
@@ -73,6 +74,7 @@ const App = () => (
               }
             >
               <Route path="/" element={<Index />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/secretaria/dashboard" element={<SecretaryDashboard />} />
               <Route path="/mensagens" element={<MensagensList />} />
               <Route path="/pacientes" element={<PacientesList />} />
