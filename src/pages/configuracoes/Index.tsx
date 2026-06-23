@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, forwardRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,7 +19,49 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
-import { getConfig, saveConfig, ConfigClinica } from '@/services/config_clinica'
+import {
+  getConfig as originalGetConfig,
+  saveConfig,
+  ConfigClinica,
+} from '@/services/config_clinica'
+
+const getConfig = async () => {
+  const data = await originalGetConfig()
+  if (data) {
+    // Map empty data to appropriately typed default values
+    const defaultData = {
+      ...data,
+      nome_clinica: data.nome_clinica ?? '',
+      crp_psicologo: data.crp_psicologo ?? '',
+      documento_identificacao: data.documento_identificacao ?? '',
+      endereco_completo: data.endereco_completo ?? '',
+      telefone_ddi: data.telefone_ddi ?? '',
+      email_contato: data.email_contato ?? '',
+      cep: data.cep ?? '',
+      logradouro: data.logradouro ?? '',
+      numero: data.numero ?? '',
+      bairro: data.bairro ?? '',
+      cidade: data.cidade ?? '',
+      estado: data.estado ?? '',
+      pais: data.pais ?? '',
+      nome_profissional: data.nome_profissional ?? '',
+      abordagem_principal: data.abordagem_principal ?? '',
+      tempo_formacao: data.tempo_formacao ?? '',
+      texto_apresentacao: data.texto_apresentacao ?? '',
+      metodo_pagamento_preferencial: data.metodo_pagamento_preferencial ?? '',
+      texto_recibo_padrao: data.texto_recibo_padrao ?? '',
+      google_calendar_email: data.google_calendar_email ?? '',
+      google_calendar_name: data.google_calendar_name ?? '',
+      whatsapp_phone: data.whatsapp_phone ?? '',
+      tempo_sessao_minutos: data.tempo_sessao_minutos ?? 0,
+      intervalo_consultas_minutos: data.intervalo_consultas_minutos ?? 0,
+      valor_consulta_padrao: data.valor_consulta_padrao ?? 0,
+      limite_maximo_participantes_grupo: data.limite_maximo_participantes_grupo ?? 0,
+    }
+    return defaultData as ConfigClinica
+  }
+  return data
+}
 import { useToast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -33,8 +75,30 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { Input as BaseInput } from '@/components/ui/input'
+import { Textarea as BaseTextarea } from '@/components/ui/textarea'
+
+const Input = forwardRef<HTMLInputElement, React.ComponentProps<typeof BaseInput>>((props, ref) => {
+  const { value, defaultValue, ...rest } = props
+  // If controlled, prevent undefined and drop defaultValue
+  if ('value' in props) {
+    return <BaseInput ref={ref} value={value ?? ''} {...rest} />
+  }
+  return <BaseInput ref={ref} defaultValue={defaultValue ?? ''} {...rest} />
+})
+Input.displayName = 'Input'
+
+const Textarea = forwardRef<HTMLTextAreaElement, React.ComponentProps<typeof BaseTextarea>>(
+  (props, ref) => {
+    const { value, defaultValue, ...rest } = props
+    // If controlled, prevent undefined and drop defaultValue
+    if ('value' in props) {
+      return <BaseTextarea ref={ref} value={value ?? ''} {...rest} />
+    }
+    return <BaseTextarea ref={ref} defaultValue={defaultValue ?? ''} {...rest} />
+  },
+)
+Textarea.displayName = 'Textarea'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -61,11 +125,32 @@ import { SecuritySettings } from '@/components/SecuritySettings'
 import { PerfilEmpresaTab } from './PerfilEmpresaTab'
 import { useLocation } from 'react-router-dom'
 import {
-  PhoneInput,
-  CurrencyInput,
-  CpfCnpjInput,
+  PhoneInput as BasePhoneInput,
+  CurrencyInput as BaseCurrencyInput,
+  CpfCnpjInput as BaseCpfCnpjInput,
   AddressFormFields,
 } from '@/components/ui/masked-inputs'
+
+const PhoneInput = forwardRef<HTMLInputElement, any>((props, ref) => {
+  const { value, defaultValue, ...rest } = props
+  if ('value' in props) return <BasePhoneInput ref={ref} value={value ?? ''} {...rest} />
+  return <BasePhoneInput ref={ref} defaultValue={defaultValue ?? ''} {...rest} />
+})
+PhoneInput.displayName = 'PhoneInput'
+
+const CurrencyInput = forwardRef<HTMLInputElement, any>((props, ref) => {
+  const { value, defaultValue, ...rest } = props
+  if ('value' in props) return <BaseCurrencyInput ref={ref} value={value ?? 0} {...rest} />
+  return <BaseCurrencyInput ref={ref} defaultValue={defaultValue ?? 0} {...rest} />
+})
+CurrencyInput.displayName = 'CurrencyInput'
+
+const CpfCnpjInput = forwardRef<HTMLInputElement, any>((props, ref) => {
+  const { value, defaultValue, ...rest } = props
+  if ('value' in props) return <BaseCpfCnpjInput ref={ref} value={value ?? ''} {...rest} />
+  return <BaseCpfCnpjInput ref={ref} defaultValue={defaultValue ?? ''} {...rest} />
+})
+CpfCnpjInput.displayName = 'CpfCnpjInput'
 
 const diasSemana = [
   { id: 'segunda', label: 'Segunda-feira' },
