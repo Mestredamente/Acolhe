@@ -6,8 +6,11 @@ interface AuthContextType {
   isAuthenticated: boolean
   is2FAVerified: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
-  signIn: (email: string, password: string) => Promise<{ error: any; requires2FA?: boolean }>
-  verify2FA: (code: string) => Promise<{ error: any }>
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: any; requires2FA?: boolean; simulatedCode?: string }>
+  verify2FA: (code: string, trustDevice?: boolean) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
 }
@@ -76,6 +79,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const generateDeviceId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  }
+
   const signIn = async (email: string, password: string) => {
     try {
       const authData = await pb.collection('users').authWithPassword(email, password)
@@ -87,12 +95,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           descricao: 'Tentativa/sucesso de login',
         }),
       )
+
       if (authData.record.dois_fa_ativo) {
+        let deviceId = localStorage.getItem('device_identifier')
+        if (!deviceId) {
+          deviceId = generateDeviceId()
+          localStorage.setItem('device_identifier', deviceId)
+        }
+
+        try {
+          const nowStr = new Date().toISOString().replace('T', ' ')
+          const trusted = await pb
+            .collection('dispositivos_confiaveis')
+            .getFirstListItem(
+              `user_id = "${authData.record.id}" && device_identifier = "${deviceId}" && expires_at > "${nowStr}"`,
+            )
+          if (trusted) {
+            setIs2FAVerified(true)
+            sessionStorage.setItem('2fa_verified', 'true')
+            return { error: null, requires2FA: false }
+          }
+        } catch (e) {
+          // not trusted or not found
+        }
+
         setIs2FAVerified(false)
         sessionStorage.removeItem('2fa_verified')
-        const code = Math.floor(100000 + Math.random() * 900000).toString()
-        await pb.collection('users').update(authData.record.id, { codigo_verificacao: code })
-        return { error: null, requires2FA: true }
+
+        const res = await pb.send('/backend/v1/auth/request-2fa', { method: 'POST' })
+
+        return { error: null, requires2FA: true, simulatedCode: res.simulatedCode }
       } else {
         setIs2FAVerified(true)
         sessionStorage.setItem('2fa_verified', 'true')
@@ -103,7 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const verify2FA = async (code: string) => {
+  const verify2FA = async (code: string, trustDevice: boolean = false) => {
     try {
       const u = pb.authStore.record
       if (!u) return { error: new Error('Não autenticado') }
@@ -113,6 +145,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIs2FAVerified(true)
         sessionStorage.setItem('2fa_verified', 'true')
         await pb.collection('users').update(u.id, { codigo_verificacao: '' })
+
+        if (trustDevice) {
+          let deviceId = localStorage.getItem('device_identifier')
+          if (!deviceId) {
+            deviceId = generateDeviceId()
+            localStorage.setItem('device_identifier', deviceId)
+          }
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + 30)
+
+          await pb.collection('dispositivos_confiaveis').create({
+            user_id: u.id,
+            device_identifier: deviceId,
+            expires_at: expiresAt.toISOString(),
+          })
+        }
+
         return { error: null }
       }
       return { error: new Error('Código inválido') }

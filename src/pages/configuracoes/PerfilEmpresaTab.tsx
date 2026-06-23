@@ -73,6 +73,8 @@ export function PerfilEmpresaTab() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      id: '',
+      logo_aplicativo: '',
       nome_aplicativo: '',
       cor_primaria: '#1E3A5F',
       frase_boas_vindas: '',
@@ -101,16 +103,13 @@ export function PerfilEmpresaTab() {
   useEffect(() => {
     getEmpresaFiscal().then((data) => {
       if (data) {
-        const safeData = { ...data }
+        const safeData = { ...form.getValues(), ...data } as Record<string, any>
         Object.keys(safeData).forEach((key) => {
-          if (
-            safeData[key as keyof typeof safeData] === null ||
-            safeData[key as keyof typeof safeData] === undefined
-          ) {
-            safeData[key as keyof typeof safeData] = ''
+          if (safeData[key] === null || safeData[key] === undefined) {
+            safeData[key] = ''
           }
         })
-        form.reset(safeData as any)
+        form.reset(safeData as unknown as FormData)
       }
     })
     loadLogs()

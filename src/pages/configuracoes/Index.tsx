@@ -135,7 +135,41 @@ export default function Configuracoes() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      id: '',
+      nome_clinica: '',
+      crp_psicologo: '',
+      documento_identificacao: '',
+      endereco_completo: '',
+      telefone_ddi: '',
+      email_contato: '',
+      cep: '',
+      logradouro: '',
+      numero: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      pais: '',
+      nome_profissional: '',
+      abordagem_principal: '',
+      tempo_formacao: '',
+      texto_apresentacao: '',
+      tempo_sessao_minutos: 50,
+      intervalo_consultas_minutos: 0,
+      horario_inicio: '',
+      horario_fim: '',
       dias_atendimento: [],
+      valor_consulta_padrao: 0,
+      metodo_pagamento_preferencial: '',
+      texto_recibo_padrao: '',
+      google_calendar_active: false,
+      google_calendar_email: '',
+      google_calendar_sync_mode: 'bidirectional',
+      google_calendar_name: '',
+      zoom_active: false,
+      zoom_auto_link: false,
+      whatsapp_phone: '',
+      limite_maximo_participantes_grupo: 15,
+      logo_url: '',
     },
   })
 
@@ -145,7 +179,13 @@ export default function Configuracoes() {
       if (userId) {
         const config = await getConfig(userId)
         if (config) {
-          form.reset(config as unknown as FormData)
+          const safeConfig = { ...form.getValues(), ...config } as Record<string, any>
+          Object.keys(safeConfig).forEach((key) => {
+            if (safeConfig[key] === null || safeConfig[key] === undefined) {
+              safeConfig[key] = ''
+            }
+          })
+          form.reset(safeConfig as unknown as FormData)
         }
       }
       setLoading(false)
@@ -389,7 +429,11 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>Nome da Clínica</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Clínica Mente Sã" {...field} />
+                              <Input
+                                placeholder="Ex: Clínica Mente Sã"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -415,7 +459,11 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>E-mail de Contato</FormLabel>
                             <FormControl>
-                              <Input placeholder="contato@clinica.com" {...field} />
+                              <Input
+                                placeholder="contato@clinica.com"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -490,7 +538,11 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>Seu Nome Completo</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Dra. Maria Silva" {...field} />
+                              <Input
+                                placeholder="Ex: Dra. Maria Silva"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -503,7 +555,7 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>CRP</FormLabel>
                             <FormControl>
-                              <Input placeholder="00/00000" {...field} />
+                              <Input placeholder="00/00000" {...field} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -519,6 +571,7 @@ export default function Configuracoes() {
                               <Input
                                 placeholder="Ex: Terapia Cognitivo-Comportamental"
                                 {...field}
+                                value={field.value ?? ''}
                               />
                             </FormControl>
                             <FormMessage />
@@ -532,7 +585,11 @@ export default function Configuracoes() {
                           <FormItem>
                             <FormLabel>Tempo de Formação / Experiência</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: 10 anos" {...field} />
+                              <Input
+                                placeholder="Ex: 10 anos"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -549,6 +606,7 @@ export default function Configuracoes() {
                                 className="min-h-[100px]"
                                 placeholder="Breve texto sobre você para os pacientes lerem..."
                                 {...field}
+                                value={field.value ?? ''}
                               />
                             </FormControl>
                             <FormMessage />
@@ -600,7 +658,7 @@ export default function Configuracoes() {
                             <FormItem>
                               <FormLabel>Tempo Padrão da Sessão (minutos)</FormLabel>
                               <FormControl>
-                                <Input type="number" {...field} />
+                                <Input type="number" {...field} value={field.value ?? ''} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -626,7 +684,7 @@ export default function Configuracoes() {
                             <FormItem>
                               <FormLabel>Intervalo entre Sessões (minutos)</FormLabel>
                               <FormControl>
-                                <Input type="number" {...field} />
+                                <Input type="number" {...field} value={field.value ?? ''} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -640,7 +698,7 @@ export default function Configuracoes() {
                               <FormItem>
                                 <FormLabel>Início do Expediente</FormLabel>
                                 <FormControl>
-                                  <Input type="time" {...field} />
+                                  <Input type="time" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -653,7 +711,7 @@ export default function Configuracoes() {
                               <FormItem>
                                 <FormLabel>Fim do Expediente</FormLabel>
                                 <FormControl>
-                                  <Input type="time" {...field} />
+                                  <Input type="time" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -825,6 +883,7 @@ export default function Configuracoes() {
                                 className="min-h-[100px]"
                                 placeholder="Ex: Referente a serviços prestados de atendimento psicológico..."
                                 {...field}
+                                value={field.value ?? ''}
                               />
                             </FormControl>
                             <FormDescription>
@@ -935,7 +994,11 @@ export default function Configuracoes() {
                               <FormItem>
                                 <FormLabel>Nome do Calendário</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Ex: Consultas Clínica" {...field} />
+                                  <Input
+                                    placeholder="Ex: Consultas Clínica"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

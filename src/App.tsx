@@ -51,6 +51,8 @@ import MinhaAssinatura from './pages/financeiro/MinhaAssinatura'
 import MinhasFaturas from './pages/financeiro/MinhasFaturas'
 import DadosProfissionais from './pages/configuracoes/DadosProfissionais'
 import Sessao from './pages/Sessao'
+import Telepsicologia from './pages/telepsicologia/Index'
+import GruposTerapeuticos from './pages/grupos/Index'
 
 const App = () => (
   <AuthProvider>
@@ -152,9 +154,10 @@ const App = () => (
               <Route path="/dados-profissionais" element={<DadosProfissionais />} />
               <Route path="/preferencias" element={<Configuracoes />} />
               <Route path="/documentos" element={<Navigate to="/pacientes" replace />} />
-              <Route path="/grupos" element={<Navigate to="/" replace />} />
+              <Route path="/grupos" element={<Navigate to="/grupo-terapeutico" replace />} />
+              <Route path="/grupo-terapeutico" element={<GruposTerapeuticos />} />
               <Route path="/supervisao" element={<Navigate to="/" replace />} />
-              <Route path="/telepsicologia" element={<Navigate to="/" replace />} />
+              <Route path="/telepsicologia" element={<Telepsicologia />} />
               <Route path="/controle-ponto" element={<Navigate to="/" replace />} />
             </Route>
           </Route>

@@ -6,13 +6,14 @@ import {
   Calendar as CalendarIcon,
   TrendingUp,
   Activity,
-  BrainCircuit,
   AlertTriangle,
   AlertCircle,
   MessageSquare,
   User,
-  Building2,
   Video,
+  Bell,
+  CreditCard,
+  CheckCircle2,
 } from 'lucide-react'
 import { getAppointments } from '@/services/appointments'
 import { getPatients } from '@/services/patients'
@@ -25,6 +26,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import pb from '@/lib/pocketbase/client'
 
 type AlertType = 'evasion' | 'aggravation' | 'delinquency' | 'engagement'
 type AlertSeverity = 'yellow' | 'orange' | 'red'
@@ -48,7 +50,8 @@ export default function Index() {
     patientsCount: 0,
     appointmentsToday: 0,
     revenueMonth: 0,
-    pendingTasks: 0,
+    saasPlanName: '-',
+    saasPlanStatus: '-',
     activeClinics: 0,
     linkedProfessionals: 0,
     topClinicName: '',
@@ -57,6 +60,7 @@ export default function Index() {
   const [alerts, setAlerts] = useState<PredictiveAlert[]>([])
   const [patientScores, setPatientScores] = useState<Record<string, number>>({})
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     if (authLoading) return
@@ -75,28 +79,77 @@ export default function Index() {
 
     async function loadData() {
       try {
-        const [patients, appointments, transactions, diarios, escalasPendentes, clinicas, users] =
-          await Promise.all([
-            getPatients(),
-            getAppointments(),
-            getTransactions(),
-            getAllDiarios().catch(() => []),
-            getAllPendingRespostas().catch(() => []),
-            isAdmin ? getClinicas().catch(() => []) : Promise.resolve([]),
-            isAdmin ? getUsers().catch(() => []) : Promise.resolve([]),
-          ])
+        const [
+          patients,
+          appointments,
+          transactions,
+          diarios,
+          escalasPendentes,
+          clinicas,
+          usersData,
+          notifsData,
+        ] = await Promise.all([
+          getPatients(),
+          getAppointments(),
+          getTransactions(),
+          getAllDiarios().catch(() => []),
+          getAllPendingRespostas().catch(() => []),
+          isAdmin ? getClinicas().catch(() => []) : Promise.resolve([]),
+          isAdmin ? getUsers().catch(() => []) : Promise.resolve([]),
+          pb
+            .collection('notificacoes')
+            .getFullList({
+              filter: `user_id="${user?.id}" && status="nao_lida"`,
+              sort: '-created',
+              limit: 20,
+            })
+            .catch(() => []),
+        ])
+
+        setNotifications(notifsData)
+
+        let saasPlanName = '-'
+        let saasPlanStatus = '-'
+        try {
+          const saasRecords = await pb.collection('saas_assinaturas').getFullList({
+            filter: `user_id="${user?.id}"${user?.id_clinica ? ` || id_clinica="${user.id_clinica}"` : ''}`,
+            expand: 'plano_id',
+          })
+          if (saasRecords.length > 0) {
+            const saas = saasRecords[0]
+            saasPlanName = saas.expand?.plano_id?.nome || saas.plano || 'Profissional'
+            saasPlanStatus = saas.status
+          }
+        } catch (e) {
+          // Fallback gracefully if API rule limits access
+        }
 
         const todayDate = new Date()
-        const today = todayDate.toISOString().split('T')[0]
-        const todayAppointments = appointments.filter((a) => a.appointment_date?.startsWith(today))
+        const offset = todayDate.getTimezoneOffset()
+        const localToday = new Date(todayDate.getTime() - offset * 60 * 1000)
+        const today = localToday.toISOString().split('T')[0]
+
+        const activePatients = patients.filter((p) => !p.deleted_at)
+
+        const todayAppointments = appointments.filter(
+          (a) =>
+            a.appointment_date?.startsWith(today) &&
+            a.status !== 'cancelada' &&
+            a.status !== 'cancelada_pelo_paciente' &&
+            !a.deleted_at,
+        )
 
         const currentMonth = todayDate.getMonth()
+        const currentYear = todayDate.getFullYear()
+
         const revenue = transactions
           .filter(
             (t) =>
               t.status === 'pago' &&
               t.payment_date &&
-              new Date(t.payment_date).getMonth() === currentMonth,
+              new Date(t.payment_date).getMonth() === currentMonth &&
+              new Date(t.payment_date).getFullYear() === currentYear &&
+              !t.deleted_at,
           )
           .reduce((acc, curr) => acc + (curr.amount || 0), 0)
 
@@ -113,13 +166,14 @@ export default function Index() {
         }
 
         setStats({
-          patientsCount: patients.length || 12,
-          appointmentsToday: todayAppointments.length || 4,
-          revenueMonth: revenue || 4500,
-          pendingTasks: 3,
+          patientsCount: activePatients.length || 0,
+          appointmentsToday: todayAppointments.length || 0,
+          revenueMonth: revenue || 0,
+          saasPlanName,
+          saasPlanStatus,
           activeClinics: clinicas.filter((c) => c.status === 'ativa').length || 0,
           linkedProfessionals:
-            users.filter((u) => u.id_clinica && ['psicologo', 'secretaria'].includes(u.profile))
+            usersData.filter((u) => u.id_clinica && ['psicologo', 'secretaria'].includes(u.profile))
               .length || 0,
           topClinicName,
         })
@@ -129,9 +183,9 @@ export default function Index() {
         const newScores: Record<string, number> = {}
 
         patients.forEach((patient) => {
+          if (patient.deleted_at) return
           let score = 0
 
-          // Evasion
           const patientApps = appointments.filter(
             (a) => a.patient_id === patient.id || (a.expand?.patient_id as any)?.id === patient.id,
           )
@@ -175,7 +229,6 @@ export default function Index() {
             }
           }
 
-          // Aggravation
           const patientDiarios = diarios.filter((d) => d.patient_id === patient.id)
           const sevenDaysAgo = new Date(todayDate.getTime() - 7 * 24 * 3600 * 1000)
           const recentNegatives = patientDiarios.filter(
@@ -197,7 +250,6 @@ export default function Index() {
             score += 2
           }
 
-          // Delinquency
           const patientTrans = transactions.filter(
             (t) => t.patient_id === patient.id || (t.expand?.patient_id as any)?.id === patient.id,
           )
@@ -234,7 +286,6 @@ export default function Index() {
             }
           }
 
-          // Engagement
           const patientEscalas = escalasPendentes.filter(
             (e) => e.patient_id === patient.id || (e.expand?.patient_id as any)?.id === patient.id,
           )
@@ -261,100 +312,18 @@ export default function Index() {
           newScores[patient.id] = score
         })
 
-        // Mock Data for UX if none triggered
-        if (newAlerts.length === 0) {
-          newAlerts.push({
-            id: 'mock-1',
-            patientId: 'mock1',
-            patientName: 'Ana Silva (Mock)',
-            type: 'evasion',
-            severity: 'yellow',
-            title: 'Risco de Evasão',
-            message: 'Última consulta há 18 dias sem agendamentos.',
-            points: 1,
-          })
-          newAlerts.push({
-            id: 'mock-2',
-            patientId: 'mock2',
-            patientName: 'Carlos Souza (Mock)',
-            type: 'aggravation',
-            severity: 'red',
-            title: 'Padrão de Agravamento',
-            message: 'Padrão de sentimentos desfavoráveis detectado.',
-            points: 2,
-          })
-          newAlerts.push({
-            id: 'mock-3',
-            patientId: 'mock3',
-            patientName: 'Roberto Oliveira (Mock)',
-            type: 'delinquency',
-            severity: 'orange',
-            title: 'Risco de Inadimplência',
-            message: 'Fatura em atraso há 9 dias.',
-            points: 1,
-          })
-          newScores['mock1'] = 1
-          newScores['mock2'] = 2
-          newScores['mock3'] = 1
-        }
-
         setAlerts(newAlerts)
         setPatientScores(newScores)
 
-        let upcomingList = appointments
-          .filter(
-            (a) =>
-              new Date(`${a.appointment_date.split(' ')[0]}T${a.start_time || '00:00'}`) >=
-                todayDate || new Date(a.appointment_date) >= todayDate,
-          )
-          .sort(
-            (a, b) =>
-              new Date(`${a.appointment_date.split(' ')[0]}T${a.start_time || '00:00'}`).getTime() -
-              new Date(`${b.appointment_date.split(' ')[0]}T${b.start_time || '00:00'}`).getTime(),
-          )
-          .slice(0, 5)
+        const upcomingList = todayAppointments.sort(
+          (a, b) =>
+            new Date(`${a.appointment_date.split(' ')[0]}T${a.start_time || '00:00'}`).getTime() -
+            new Date(`${b.appointment_date.split(' ')[0]}T${b.start_time || '00:00'}`).getTime(),
+        )
 
-        if (upcomingList.length === 0) {
-          upcomingList = [
-            {
-              id: 'u1',
-              patient_id: 'mock1',
-              patient_name_text: 'Ana Silva (Mock)',
-              type: 'Presencial',
-              appointment_date: today,
-              start_time: '14:00',
-              status: 'confirmada',
-            } as any,
-            {
-              id: 'u2',
-              patient_id: 'mock2',
-              patient_name_text: 'Carlos Souza (Mock)',
-              type: 'Online',
-              appointment_date: today,
-              start_time: '15:00',
-              status: 'agendada',
-            } as any,
-            {
-              id: 'u3',
-              patient_id: 'mock3',
-              patient_name_text: 'Roberto Oliveira (Mock)',
-              type: 'Presencial',
-              appointment_date: today,
-              start_time: '16:00',
-              status: 'confirmada',
-            } as any,
-          ]
-        }
         setUpcomingAppointments(upcomingList)
       } catch (err) {
         console.error(err)
-        // Fallback realistic data
-        setStats({
-          patientsCount: 24,
-          appointmentsToday: 5,
-          revenueMonth: 5800,
-          pendingTasks: 2,
-        })
       } finally {
         setLoading(false)
       }
@@ -391,44 +360,6 @@ export default function Index() {
         <p className="text-muted-foreground mt-1">Visão geral do seu consultório.</p>
       </div>
 
-      {isAdmin && (
-        <div className="grid gap-6 md:grid-cols-3 mb-6 animate-fade-in-up">
-          <Card className="standard-card border-none shadow-elevation bg-primary text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-primary-foreground/80">
-                Clínicas Ativas
-              </CardTitle>
-              <Building2 className="h-4 w-4 text-primary-foreground/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeClinics}</div>
-            </CardContent>
-          </Card>
-          <Card className="standard-card border-none shadow-elevation bg-blue-800 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-primary-foreground/80">
-                Profissionais Vinculados
-              </CardTitle>
-              <Users className="h-4 w-4 text-primary-foreground/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.linkedProfessionals}</div>
-            </CardContent>
-          </Card>
-          <Card className="standard-card border-none shadow-elevation bg-slate-900 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-primary-foreground/80">
-                Clínica Destaque (Pacientes)
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary-foreground/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold truncate">{stats.topClinicName}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="standard-card border-none shadow-elevation">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -439,7 +370,6 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.patientsCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">+2 este mês</p>
           </CardContent>
         </Card>
 
@@ -452,7 +382,6 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.appointmentsToday}</div>
-            <p className="text-xs text-muted-foreground mt-1">Próxima às 14:00</p>
           </CardContent>
         </Card>
 
@@ -469,20 +398,29 @@ export default function Index() {
                 stats.revenueMonth,
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">+15% em relação ao mês passado</p>
           </CardContent>
         </Card>
 
         <Card className="standard-card border-none shadow-elevation">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-800">Tarefas Pendentes</CardTitle>
-            <div className="bg-warning/10 p-2 rounded-full">
-              <Activity className="h-4 w-4 text-warning" />
+            <CardTitle className="text-sm font-medium text-gray-800">Plano Atual</CardTitle>
+            <div className="bg-purple-100 p-2 rounded-full">
+              <CreditCard className="h-4 w-4 text-purple-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingTasks}</div>
-            <p className="text-xs text-muted-foreground mt-1">Revisar evoluções</p>
+            <div className="text-xl font-bold capitalize truncate">{stats.saasPlanName}</div>
+            <p className="text-xs text-muted-foreground mt-1 capitalize flex items-center gap-1">
+              {stats.saasPlanStatus !== '-' && (
+                <span
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    stats.saasPlanStatus === 'ativo' ? 'bg-success' : 'bg-warning',
+                  )}
+                ></span>
+              )}
+              {stats.saasPlanStatus}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -501,7 +439,10 @@ export default function Index() {
         <CardContent className="pt-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {alerts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum alerta preditivo no momento.</p>
+              <div className="col-span-full py-8 text-center text-muted-foreground bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p>Nenhum alerta preditivo no momento.</p>
+              </div>
             ) : (
               alerts.map((alert) => {
                 const isRed = alert.severity === 'red'
@@ -588,105 +529,128 @@ export default function Index() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 standard-card border-none shadow-elevation">
           <CardHeader>
-            <CardTitle>Próximos Atendimentos</CardTitle>
+            <CardTitle>Atendimentos de Hoje</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {upcomingAppointments.map((app) => {
-                const score =
-                  patientScores[app.patient_id] ||
-                  (app.expand?.patient_id ? patientScores[app.expand.patient_id.id] : 0) ||
-                  0
-                const riskLabel = score >= 2 ? 'Risco' : score === 1 ? 'Atenção' : 'Estável'
-                const riskClass =
-                  score >= 2
-                    ? 'bg-rose-100 text-rose-800 border-rose-200'
-                    : score === 1
-                      ? 'bg-amber-100 text-amber-800 border-amber-200'
-                      : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              {upcomingAppointments.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                  <CalendarIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p>Nenhum atendimento agendado para hoje.</p>
+                </div>
+              ) : (
+                upcomingAppointments.map((app) => {
+                  const score =
+                    patientScores[app.patient_id] ||
+                    (app.expand?.patient_id ? patientScores[app.expand.patient_id.id] : 0) ||
+                    0
+                  const riskLabel = score >= 2 ? 'Risco' : score === 1 ? 'Atenção' : 'Estável'
+                  const riskClass =
+                    score >= 2
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : score === 1
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
 
-                return (
-                  <div
-                    key={app.id}
-                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-gray-200"
-                  >
-                    <div className="bg-primary/10 text-primary font-semibold p-3 rounded-lg text-center min-w-[75px] shadow-sm">
-                      <div className="text-lg">{app.start_time || '00:00'}</div>
-                    </div>
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-gray-900 truncate">
-                            {app.patient_name_text || app.expand?.patient_id?.name || 'Paciente'}
-                          </h4>
-                          <Badge
-                            variant="outline"
+                  return (
+                    <div
+                      key={app.id}
+                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-gray-200"
+                    >
+                      <div className="bg-primary/10 text-primary font-semibold p-3 rounded-lg text-center min-w-[75px] shadow-sm">
+                        <div className="text-lg">{app.start_time || '00:00'}</div>
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900 truncate">
+                              {app.patient_name_text || app.expand?.patient_id?.name || 'Paciente'}
+                            </h4>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'text-[10px] uppercase font-bold py-0 h-5 whitespace-nowrap',
+                                riskClass,
+                              )}
+                            >
+                              {riskLabel}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                            {app.type}
+                            {app.type === 'Online' && app.link_sessao && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div
                             className={cn(
-                              'text-[10px] uppercase font-bold py-0 h-5 whitespace-nowrap',
-                              riskClass,
+                              'px-3 py-1 rounded-full text-xs font-medium shadow-sm whitespace-nowrap hidden sm:block',
+                              app.status === 'confirmada'
+                                ? 'bg-success/10 text-success'
+                                : 'bg-slate-100 text-slate-600',
                             )}
                           >
-                            {riskLabel}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
-                          {app.type}
-                          {app.type === 'Online' && app.link_sessao && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            'px-3 py-1 rounded-full text-xs font-medium shadow-sm whitespace-nowrap hidden sm:block',
-                            app.status === 'confirmada'
-                              ? 'bg-success/10 text-success'
-                              : 'bg-slate-100 text-slate-600',
-                          )}
-                        >
-                          {app.status}
-                        </div>
+                            {app.status}
+                          </div>
 
-                        {app.type === 'Online' && app.link_sessao && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-blue-700 hover:bg-blue-800 text-white text-xs whitespace-nowrap h-8"
-                            onClick={() => window.open(app.link_sessao, '_blank')}
-                          >
-                            <Video className="w-3 h-3 mr-1.5" />
-                            Iniciar Sessão
-                          </Button>
-                        )}
+                          {app.type === 'Online' && app.link_sessao && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="bg-blue-700 hover:bg-blue-800 text-white text-xs whitespace-nowrap h-8"
+                              onClick={() => window.open(app.link_sessao, '_blank')}
+                            >
+                              <Video className="w-3 h-3 mr-1.5" />
+                              Iniciar Sessão
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
-              {upcomingAppointments.length === 0 && (
-                <p className="text-sm text-muted-foreground py-4">Nenhum atendimento agendado.</p>
+                  )
+                })
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-3 standard-card border-none shadow-elevation bg-gradient-to-br from-primary to-blue-800 text-primary-foreground relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <BrainCircuit className="w-32 h-32 text-white" />
-          </div>
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-white">Dica do Dia</CardTitle>
+        <Card className="col-span-3 standard-card border-none shadow-elevation">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" /> Notificações Recentes
+            </CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="flex flex-col items-center text-center space-y-4 py-4">
-              <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm shadow-inner">
-                <BrainCircuit className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-primary-foreground/90 font-medium leading-relaxed">
-                Mantenha suas evoluções atualizadas. A documentação clínica em dia é fundamental
-                para o acompanhamento dos pacientes.
-              </p>
+          <CardContent>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                  <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p>Você não tem novas notificações.</p>
+                </div>
+              ) : (
+                notifications.map((notif) => (
+                  <Link key={notif.id} to={notif.link || '/notificacoes'} className="block">
+                    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-gray-200">
+                      <div className="bg-primary/10 p-2 rounded-full mt-0.5">
+                        <Bell className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm text-gray-900">{notif.title}</h4>
+                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{notif.message}</p>
+                        <span className="text-[10px] text-gray-400 mt-1 block">
+                          {new Date(notif.created).toLocaleDateString('pt-BR')} às{' '}
+                          {new Date(notif.created).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

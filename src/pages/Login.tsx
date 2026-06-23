@@ -12,12 +12,13 @@ export function Login() {
   const { signIn, verify2FA, isAuthenticated, is2FAVerified, signOut } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('mestredamente1@gmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'login' | '2fa'>('login')
   const [code, setCode] = useState('')
   const [simulatedCode, setSimulatedCode] = useState('')
+  const [trustDevice, setTrustDevice] = useState(false)
 
   useEffect(() => {
     sessionStorage.removeItem('impersonated_user')
@@ -28,15 +29,15 @@ export function Login() {
   useEffect(() => {
     if (isAuthenticated && !is2FAVerified && step === 'login') {
       setStep('2fa')
-      const generateCode = async () => {
-        const u = pb.authStore.record
-        if (u) {
-          const c = Math.floor(100000 + Math.random() * 900000).toString()
-          await pb.collection('users').update(u.id, { codigo_verificacao: c })
-          setSimulatedCode(c)
+      const request2FA = async () => {
+        try {
+          const res = await pb.send('/backend/v1/auth/request-2fa', { method: 'POST' })
+          if (res.simulatedCode) setSimulatedCode(res.simulatedCode)
+        } catch (error) {
+          console.error('Error requesting 2FA', error)
         }
       }
-      generateCode()
+      request2FA()
     }
   }, [isAuthenticated, is2FAVerified, step])
 
@@ -65,12 +66,15 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error, requires2FA } = await signIn(email, password)
+    const { error, requires2FA, simulatedCode: newSimulatedCode } = await signIn(email, password)
 
     if (error) {
+      const isNetworkError = error?.status === 0 || !navigator.onLine
       toast({
-        title: 'Erro ao entrar',
-        description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
+        title: isNetworkError ? 'Erro de Conexão' : 'Erro ao entrar',
+        description: isNetworkError
+          ? 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.'
+          : 'Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.',
         variant: 'destructive',
       })
       setLoading(false)
@@ -91,7 +95,7 @@ export function Login() {
 
     if (requires2FA) {
       setStep('2fa')
-      setSimulatedCode(user?.codigo_verificacao || '')
+      if (newSimulatedCode) setSimulatedCode(newSimulatedCode)
       setLoading(false)
       return
     }
@@ -102,7 +106,7 @@ export function Login() {
   const handle2FASubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await verify2FA(code)
+    const { error } = await verify2FA(code, trustDevice)
     if (error) {
       toast({
         title: 'Código incorreto',
@@ -279,6 +283,22 @@ export function Login() {
                   required
                 />
               </div>
+              <div className="flex items-center space-x-2 justify-center pb-2">
+                <input
+                  type="checkbox"
+                  id="trustDevice"
+                  checked={trustDevice}
+                  onChange={(e) => setTrustDevice(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-900 focus:ring-blue-900"
+                />
+                <label
+                  htmlFor="trustDevice"
+                  className="text-sm text-slate-600 font-medium cursor-pointer"
+                >
+                  Confiar neste dispositivo por 30 dias
+                </label>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-blue-900 hover:bg-blue-800 text-white py-6 text-lg"
